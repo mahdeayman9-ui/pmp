@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Project, Phase, Task, Team } from '../types';
-import { addDays, subDays } from 'date-fns';
+import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { Project, Phase, Task, Team, ProjectAnalytics, TeamAnalytics, DashboardStats, Activity } from '../types';
+import { addDays, subDays, differenceInDays, isAfter, isBefore } from 'date-fns';
 
 interface DataContextType {
   projects: Project[];
   teams: Team[];
   tasks: Task[];
+  activities: Activity[];
+  
+  // CRUD operations
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
@@ -15,31 +18,46 @@ interface DataContextType {
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  
+  // Helper functions
   getAllMembers: () => Array<{ id: string; name: string; email: string; teamId: string; teamName: string; role: string }>;
+  getProjectAnalytics: (projectId: string) => ProjectAnalytics;
+  getTeamAnalytics: (teamId: string) => TeamAnalytics;
+  getDashboardStats: () => DashboardStats;
+  getTasksByMember: (memberId: string) => Task[];
+  getOverdueTasks: () => Task[];
+  getRecentActivities: (limit?: number) => Activity[];
+  
+  // متتبع المهام المحسن
+  logDailyAchievement: (taskId: string, achievement: any) => void;
+  startTask: (taskId: string) => void;
+  completeTask: (taskId: string) => void;
+  calculateTaskProgress: (task: Task) => number;
+  getTaskRiskLevel: (task: Task) => 'low' | 'medium' | 'high' | 'critical';
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Mock data
+// Mock data محسن
 const mockTeams: Team[] = [
   {
     id: '1',
-    name: 'Development Team',
-    description: 'Frontend and backend developers',
+    name: 'فريق التطوير',
+    description: 'مطورو الواجهة الأمامية والخلفية',
     members: [
-      { id: '1', userId: '1', name: 'John Admin', email: 'admin@demo.com', role: 'lead', joinedAt: subDays(new Date(), 30) },
-      { id: '2', userId: '3', name: 'Mike Member', email: 'member@demo.com', role: 'member', joinedAt: subDays(new Date(), 15) },
-      { id: '4', userId: '4', name: 'Alice Developer', email: 'alice@demo.com', role: 'member', joinedAt: subDays(new Date(), 20) }
+      { id: '1', userId: '1', name: 'أحمد المدير', email: 'admin@demo.com', role: 'lead', joinedAt: subDays(new Date(), 30) },
+      { id: '2', userId: '3', name: 'محمد العضو', email: 'member@demo.com', role: 'member', joinedAt: subDays(new Date(), 15) },
+      { id: '4', userId: '4', name: 'علياء المطورة', email: 'alice@demo.com', role: 'member', joinedAt: subDays(new Date(), 20) }
     ],
     createdAt: subDays(new Date(), 30)
   },
   {
     id: '2',
-    name: 'Design Team',
-    description: 'UI/UX designers and visual artists',
+    name: 'فريق التصميم',
+    description: 'مصممو واجهات المستخدم والفنانون البصريون',
     members: [
-      { id: '3', userId: '2', name: 'Sarah Manager', email: 'manager@demo.com', role: 'lead', joinedAt: subDays(new Date(), 25) },
-      { id: '5', userId: '5', name: 'Bob Designer', email: 'bob@demo.com', role: 'member', joinedAt: subDays(new Date(), 12) }
+      { id: '3', userId: '2', name: 'سارة المديرة', email: 'manager@demo.com', role: 'lead', joinedAt: subDays(new Date(), 25) },
+      { id: '5', userId: '5', name: 'بوب المصمم', email: 'bob@demo.com', role: 'member', joinedAt: subDays(new Date(), 12) }
     ],
     createdAt: subDays(new Date(), 25)
   }
@@ -48,8 +66,8 @@ const mockTeams: Team[] = [
 const mockProjects: Project[] = [
   {
     id: '1',
-    name: 'E-commerce Platform',
-    description: 'Building a modern e-commerce platform with React and Node.js',
+    name: 'منصة التجارة الإلكترونية',
+    description: 'بناء منصة تجارة إلكترونية حديثة باستخدام React و Node.js',
     startDate: subDays(new Date(), 20),
     endDate: addDays(new Date(), 40),
     status: 'in-progress',
@@ -58,8 +76,8 @@ const mockProjects: Project[] = [
     phases: [
       {
         id: '1',
-        name: 'Planning & Design',
-        description: 'Initial planning and UI/UX design phase',
+        name: 'التخطيط والتصميم',
+        description: 'مرحلة التخطيط الأولي وتصميم واجهة المستخدم',
         startDate: subDays(new Date(), 20),
         endDate: subDays(new Date(), 10),
         status: 'completed',
@@ -69,8 +87,8 @@ const mockProjects: Project[] = [
       },
       {
         id: '2',
-        name: 'Development',
-        description: 'Core development phase',
+        name: 'التطوير',
+        description: 'مرحلة التطوير الأساسية',
         startDate: subDays(new Date(), 10),
         endDate: addDays(new Date(), 20),
         status: 'in-progress',
@@ -80,8 +98,8 @@ const mockProjects: Project[] = [
       },
       {
         id: '3',
-        name: 'Testing & Deployment',
-        description: 'Testing and deployment phase',
+        name: 'الاختبار والنشر',
+        description: 'مرحلة الاختبار والنشر',
         startDate: addDays(new Date(), 20),
         endDate: addDays(new Date(), 40),
         status: 'not-started',
@@ -94,8 +112,8 @@ const mockProjects: Project[] = [
   },
   {
     id: '2',
-    name: 'Mobile App Redesign',
-    description: 'Complete redesign of the mobile application',
+    name: 'إعادة تصميم التطبيق المحمول',
+    description: 'إعادة تصميم كاملة لتطبيق الهاتف المحمول',
     startDate: subDays(new Date(), 10),
     endDate: addDays(new Date(), 30),
     status: 'in-progress',
@@ -104,8 +122,8 @@ const mockProjects: Project[] = [
     phases: [
       {
         id: '4',
-        name: 'Research',
-        description: 'User research and competitor analysis',
+        name: 'البحث',
+        description: 'بحث المستخدمين وتحليل المنافسين',
         startDate: subDays(new Date(), 10),
         endDate: new Date(),
         status: 'in-progress',
@@ -115,8 +133,8 @@ const mockProjects: Project[] = [
       },
       {
         id: '5',
-        name: 'Design Phase',
-        description: 'Create new UI/UX designs',
+        name: 'مرحلة التصميم',
+        description: 'إنشاء تصاميم واجهة المستخدم الجديدة',
         startDate: new Date(),
         endDate: addDays(new Date(), 15),
         status: 'not-started',
@@ -132,12 +150,12 @@ const mockProjects: Project[] = [
 const mockTasks: Task[] = [
   {
     id: '1',
-    title: 'Create user authentication system',
-    description: 'Implement login, logout, and user management',
+    title: 'إنشاء نظام المصادقة',
+    description: 'تنفيذ تسجيل الدخول والخروج وإدارة المستخدمين',
     status: 'completed',
     priority: 'high',
     assignedToUserId: '1',
-    assignedToName: 'John Admin',
+    assignedToName: 'أحمد المدير',
     startDate: subDays(new Date(), 15),
     endDate: subDays(new Date(), 5),
     progress: 100,
@@ -150,30 +168,36 @@ const mockTasks: Task[] = [
         value: 25,
         checkIn: {
           timestamp: subDays(new Date(), 10).toISOString(),
-          location: { latitude: 40.7128, longitude: -74.0060 }
+          location: { latitude: 24.7136, longitude: 46.6753 }
         },
         checkOut: {
           timestamp: new Date(subDays(new Date(), 10).getTime() + 8 * 60 * 60 * 1000).toISOString(),
-          location: { latitude: 40.7128, longitude: -74.0060 }
+          location: { latitude: 24.7136, longitude: 46.6753 }
         },
         media: [],
-        voiceNotes: []
+        voiceNotes: [],
+        workHours: 8
       }
     ],
     totalTarget: 100,
     actualStartDate: subDays(new Date(), 15),
     actualEndDate: subDays(new Date(), 5),
-    plannedEffortHours: 8,
-    actualEffortHours: 8
+    plannedEffortHours: 40,
+    actualEffortHours: 38,
+    riskLevel: 'low',
+    completionRate: 100,
+    timeSpent: 2280,
+    isOverdue: false,
+    lastActivity: subDays(new Date(), 5)
   },
   {
     id: '2',
-    title: 'Design product catalog',
-    description: 'Create responsive product listing and detail pages',
+    title: 'تصميم كتالوج المنتجات',
+    description: 'إنشاء صفحات قائمة المنتجات وتفاصيل المنتج المتجاوبة',
     status: 'in-progress',
     priority: 'high',
     assignedToUserId: '4',
-    assignedToName: 'Alice Developer',
+    assignedToName: 'علياء المطورة',
     startDate: subDays(new Date(), 8),
     endDate: addDays(new Date(), 5),
     progress: 60,
@@ -186,25 +210,31 @@ const mockTasks: Task[] = [
         value: 30,
         checkIn: {
           timestamp: subDays(new Date(), 5).toISOString(),
-          location: { latitude: 40.7589, longitude: -73.9851 }
+          location: { latitude: 24.7136, longitude: 46.6753 }
         },
         media: [],
-        voiceNotes: []
+        voiceNotes: [],
+        workHours: 6
       }
     ],
     totalTarget: 50,
     actualStartDate: subDays(new Date(), 8),
-    plannedEffortHours: 6,
-    actualEffortHours: 4
+    plannedEffortHours: 32,
+    actualEffortHours: 20,
+    riskLevel: 'medium',
+    completionRate: 60,
+    timeSpent: 1200,
+    isOverdue: false,
+    lastActivity: subDays(new Date(), 1)
   },
   {
     id: '3',
-    title: 'Implement shopping cart',
-    description: 'Add to cart functionality and cart management',
+    title: 'تنفيذ سلة التسوق',
+    description: 'إضافة وظيفة إضافة إلى السلة وإدارة السلة',
     status: 'todo',
     priority: 'medium',
     assignedToUserId: '3',
-    assignedToName: 'Mike Member',
+    assignedToName: 'محمد العضو',
     startDate: new Date(),
     endDate: addDays(new Date(), 10),
     progress: 0,
@@ -213,75 +243,36 @@ const mockTasks: Task[] = [
     createdAt: subDays(new Date(), 3),
     dailyAchievements: [],
     totalTarget: 75,
-    plannedEffortHours: 10,
-    actualEffortHours: 0
+    plannedEffortHours: 50,
+    actualEffortHours: 0,
+    riskLevel: 'low',
+    completionRate: 0,
+    timeSpent: 0,
+    isOverdue: false,
+    lastActivity: subDays(new Date(), 3)
+  }
+];
+
+const mockActivities: Activity[] = [
+  {
+    id: '1',
+    type: 'task_completed',
+    description: 'تم إكمال مهمة "إنشاء نظام المصادقة"',
+    userId: '1',
+    userName: 'أحمد المدير',
+    entityId: '1',
+    entityType: 'task',
+    timestamp: subDays(new Date(), 5)
   },
   {
-    id: '4',
-    title: 'User research interviews',
-    description: 'Conduct interviews with target users',
-    status: 'completed',
-    priority: 'high',
-    assignedToUserId: '2',
-    assignedToName: 'Sarah Manager',
-    startDate: subDays(new Date(), 10),
-    endDate: subDays(new Date(), 3),
-    progress: 100,
-    phaseId: '4',
-    projectId: '2',
-    createdAt: subDays(new Date(), 10),
-    dailyAchievements: [
-      {
-        date: subDays(new Date(), 8).toISOString().split('T')[0],
-        value: 20,
-        checkIn: {
-          timestamp: subDays(new Date(), 8).toISOString(),
-          location: { latitude: 34.0522, longitude: -118.2437 }
-        },
-        checkOut: {
-          timestamp: new Date(subDays(new Date(), 8).getTime() + 6 * 60 * 60 * 1000).toISOString(),
-          location: { latitude: 34.0522, longitude: -118.2437 }
-        },
-        media: [],
-        voiceNotes: []
-      }
-    ],
-    totalTarget: 20,
-    actualStartDate: subDays(new Date(), 10),
-    actualEndDate: subDays(new Date(), 3),
-    plannedEffortHours: 6,
-    actualEffortHours: 6
-  },
-  {
-    id: '5',
-    title: 'Competitor analysis',
-    description: 'Analyze competitor mobile apps and features',
-    status: 'in-progress',
-    priority: 'medium',
-    assignedToUserId: '5',
-    assignedToName: 'Bob Designer',
-    startDate: subDays(new Date(), 5),
-    endDate: addDays(new Date(), 2),
-    progress: 75,
-    phaseId: '4',
-    projectId: '2',
-    createdAt: subDays(new Date(), 5),
-    dailyAchievements: [
-      {
-        date: subDays(new Date(), 3).toISOString().split('T')[0],
-        value: 15,
-        checkIn: {
-          timestamp: subDays(new Date(), 3).toISOString(),
-          location: { latitude: 37.7749, longitude: -122.4194 }
-        },
-        media: [],
-        voiceNotes: []
-      }
-    ],
-    totalTarget: 20,
-    actualStartDate: subDays(new Date(), 5),
-    plannedEffortHours: 7,
-    actualEffortHours: 5
+    id: '2',
+    type: 'achievement_logged',
+    description: 'تم تسجيل إنجاز يومي لمهمة "تصميم كتالوج المنتجات"',
+    userId: '4',
+    userName: 'علياء المطورة',
+    entityId: '2',
+    entityType: 'task',
+    timestamp: subDays(new Date(), 1)
   }
 ];
 
@@ -289,7 +280,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [teams, setTeams] = useState<Team[]>(mockTeams);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [activities, setActivities] = useState<Activity[]>(mockActivities);
 
+  // Helper functions محسنة
   const getAllMembers = () => {
     return teams.flatMap(team => 
       team.members.map(member => ({
@@ -303,6 +296,220 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   };
 
+  const calculateTaskProgress = (task: Task): number => {
+    if (!task.dailyAchievements || task.dailyAchievements.length === 0) return 0;
+    if (!task.totalTarget || task.totalTarget === 0) return task.status === 'completed' ? 100 : 0;
+    
+    const totalAchieved = task.dailyAchievements.reduce((sum, achievement) => sum + (achievement.value || 0), 0);
+    return Math.min(100, Math.round((totalAchieved / task.totalTarget) * 100));
+  };
+
+  const getTaskRiskLevel = (task: Task): 'low' | 'medium' | 'high' | 'critical' => {
+    const today = new Date();
+    const endDate = new Date(task.endDate);
+    const startDate = new Date(task.startDate);
+    const progress = calculateTaskProgress(task);
+    
+    // إذا كانت المهمة متأخرة
+    if (isAfter(today, endDate) && task.status !== 'completed') {
+      return 'critical';
+    }
+    
+    // إذا كانت المهمة قريبة من الانتهاء والتقدم منخفض
+    const totalDays = differenceInDays(endDate, startDate);
+    const remainingDays = differenceInDays(endDate, today);
+    const expectedProgress = totalDays > 0 ? ((totalDays - remainingDays) / totalDays) * 100 : 0;
+    
+    if (progress < expectedProgress - 20) return 'high';
+    if (progress < expectedProgress - 10) return 'medium';
+    
+    return 'low';
+  };
+
+  const getProjectAnalytics = (projectId: string): ProjectAnalytics => {
+    const projectTasks = tasks.filter(t => t.projectId === projectId);
+    const completedTasks = projectTasks.filter(t => t.status === 'completed');
+    const inProgressTasks = projectTasks.filter(t => t.status === 'in-progress');
+    const overdueTasks = projectTasks.filter(t => t.isOverdue);
+    
+    const averageCompletionTime = completedTasks.length > 0 
+      ? completedTasks.reduce((sum, task) => sum + (task.actualEffortHours || 0), 0) / completedTasks.length
+      : 0;
+    
+    const teamProductivity = projectTasks.length > 0 
+      ? (completedTasks.length / projectTasks.length) * 100
+      : 0;
+    
+    const riskScore = projectTasks.reduce((score, task) => {
+      const riskValues = { low: 1, medium: 2, high: 3, critical: 4 };
+      return score + riskValues[getTaskRiskLevel(task)];
+    }, 0) / projectTasks.length;
+
+    return {
+      projectId,
+      totalTasks: projectTasks.length,
+      completedTasks: completedTasks.length,
+      inProgressTasks: inProgressTasks.length,
+      overdueTasks: overdueTasks.length,
+      averageCompletionTime,
+      teamProductivity,
+      riskScore
+    };
+  };
+
+  const getTeamAnalytics = (teamId: string): TeamAnalytics => {
+    const team = teams.find(t => t.id === teamId);
+    const teamProjects = projects.filter(p => p.teamId === teamId);
+    const teamTasks = tasks.filter(t => teamProjects.some(p => p.id === t.projectId));
+    
+    const workloadDistribution = team?.members.map(member => ({
+      memberId: member.userId,
+      taskCount: teamTasks.filter(t => t.assignedToUserId === member.userId).length
+    })) || [];
+
+    return {
+      teamId,
+      memberCount: team?.members.length || 0,
+      activeProjects: teamProjects.filter(p => p.status === 'in-progress').length,
+      completedProjects: teamProjects.filter(p => p.status === 'completed').length,
+      totalTasks: teamTasks.length,
+      averageTaskCompletion: teamTasks.length > 0 
+        ? teamTasks.reduce((sum, task) => sum + calculateTaskProgress(task), 0) / teamTasks.length
+        : 0,
+      workloadDistribution
+    };
+  };
+
+  const getDashboardStats = (): DashboardStats => {
+    const completedTasks = tasks.filter(t => t.status === 'completed');
+    const overdueTasks = tasks.filter(t => t.isOverdue);
+    const activeMembers = getAllMembers().filter(member => 
+      tasks.some(t => t.assignedToUserId === member.id && t.status === 'in-progress')
+    );
+
+    return {
+      totalProjects: projects.length,
+      activeProjects: projects.filter(p => p.status === 'in-progress').length,
+      completedProjects: projects.filter(p => p.status === 'completed').length,
+      totalTasks: tasks.length,
+      completedTasks: completedTasks.length,
+      overdueTasks: overdueTasks.length,
+      totalMembers: getAllMembers().length,
+      activeMembers: activeMembers.length,
+      recentActivities: activities.slice(0, 10)
+    };
+  };
+
+  const getTasksByMember = (memberId: string): Task[] => {
+    return tasks.filter(t => t.assignedToUserId === memberId);
+  };
+
+  const getOverdueTasks = (): Task[] => {
+    return tasks.filter(t => t.isOverdue);
+  };
+
+  const getRecentActivities = (limit: number = 10): Activity[] => {
+    return activities
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
+  };
+
+  // متتبع المهام المحسن
+  const logDailyAchievement = (taskId: string, achievement: any) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        const updatedAchievements = task.dailyAchievements || [];
+        const existingIndex = updatedAchievements.findIndex(a => a.date === achievement.date);
+        
+        if (existingIndex >= 0) {
+          updatedAchievements[existingIndex] = achievement;
+        } else {
+          updatedAchievements.push(achievement);
+        }
+        
+        const newProgress = calculateTaskProgress({ ...task, dailyAchievements: updatedAchievements });
+        const newRiskLevel = getTaskRiskLevel({ ...task, progress: newProgress });
+        
+        // إضافة نشاط جديد
+        const newActivity: Activity = {
+          id: Date.now().toString(),
+          type: 'achievement_logged',
+          description: `تم تسجيل إنجاز يومي لمهمة "${task.title}"`,
+          userId: task.assignedToUserId || '',
+          userName: task.assignedToName || '',
+          entityId: taskId,
+          entityType: 'task',
+          timestamp: new Date()
+        };
+        setActivities(prev => [newActivity, ...prev]);
+        
+        return {
+          ...task,
+          dailyAchievements: updatedAchievements,
+          progress: newProgress,
+          riskLevel: newRiskLevel,
+          lastActivity: new Date()
+        };
+      }
+      return task;
+    }));
+  };
+
+  const startTask = (taskId: string) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        const newActivity: Activity = {
+          id: Date.now().toString(),
+          type: 'task_created',
+          description: `تم بدء مهمة "${task.title}"`,
+          userId: task.assignedToUserId || '',
+          userName: task.assignedToName || '',
+          entityId: taskId,
+          entityType: 'task',
+          timestamp: new Date()
+        };
+        setActivities(prev => [newActivity, ...prev]);
+        
+        return {
+          ...task,
+          status: 'in-progress' as const,
+          actualStartDate: new Date(),
+          lastActivity: new Date()
+        };
+      }
+      return task;
+    }));
+  };
+
+  const completeTask = (taskId: string) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        const newActivity: Activity = {
+          id: Date.now().toString(),
+          type: 'task_completed',
+          description: `تم إكمال مهمة "${task.title}"`,
+          userId: task.assignedToUserId || '',
+          userName: task.assignedToName || '',
+          entityId: taskId,
+          entityType: 'task',
+          timestamp: new Date()
+        };
+        setActivities(prev => [newActivity, ...prev]);
+        
+        return {
+          ...task,
+          status: 'completed' as const,
+          actualEndDate: new Date(),
+          progress: 100,
+          completionRate: 100,
+          lastActivity: new Date()
+        };
+      }
+      return task;
+    }));
+  };
+
+  // CRUD operations محسنة
   const addProject = (project: Omit<Project, 'id' | 'createdAt'>) => {
     const newProject: Project = {
       ...project,
@@ -310,6 +517,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       createdAt: new Date()
     };
     setProjects(prev => [...prev, newProject]);
+    
+    const newActivity: Activity = {
+      id: Date.now().toString(),
+      type: 'project_started',
+      description: `تم إنشاء مشروع جديد "${project.name}"`,
+      userId: 'current-user',
+      userName: 'المستخدم الحالي',
+      entityId: newProject.id,
+      entityType: 'project',
+      timestamp: new Date()
+    };
+    setActivities(prev => [newActivity, ...prev]);
   };
 
   const updateProject = (id: string, updates: Partial<Project>) => {
@@ -318,7 +537,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteProject = (id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
-    // Also delete related tasks
     setTasks(prev => prev.filter(t => t.projectId !== id));
   };
 
@@ -337,7 +555,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteTeam = (id: string) => {
     setTeams(prev => prev.filter(t => t.id !== id));
-    // Also delete related projects and tasks
     const projectsToDelete = projects.filter(p => p.teamId === id).map(p => p.id);
     setProjects(prev => prev.filter(p => p.teamId !== id));
     setTasks(prev => prev.filter(t => !projectsToDelete.includes(t.projectId)));
@@ -347,24 +564,72 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newTask: Task = {
       ...task,
       id: Date.now().toString(),
-      createdAt: new Date()
+      createdAt: new Date(),
+      dailyAchievements: [],
+      riskLevel: 'low',
+      completionRate: 0,
+      timeSpent: 0,
+      isOverdue: false,
+      lastActivity: new Date()
     };
     setTasks(prev => [...prev, newTask]);
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    setTasks(prev => prev.map(t => {
+      if (t.id === id) {
+        const updatedTask = { ...t, ...updates, lastActivity: new Date() };
+        
+        // إعادة حساب التقدم ومستوى المخاطر
+        if (updates.dailyAchievements) {
+          updatedTask.progress = calculateTaskProgress(updatedTask);
+          updatedTask.riskLevel = getTaskRiskLevel(updatedTask);
+        }
+        
+        return updatedTask;
+      }
+      return t;
+    }));
   };
 
   const deleteTask = (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
   };
 
+  // حساب الإحصائيات المحسنة
+  const enhancedProjects = useMemo(() => {
+    return projects.map(project => {
+      const projectTasks = tasks.filter(t => t.projectId === project.id);
+      const completedTasks = projectTasks.filter(t => t.status === 'completed');
+      const overdueTasks = projectTasks.filter(t => t.isOverdue);
+      
+      return {
+        ...project,
+        totalTasks: projectTasks.length,
+        completedTasks: completedTasks.length,
+        overdueTasks: overdueTasks.length,
+        progress: projectTasks.length > 0 
+          ? Math.round(projectTasks.reduce((sum, task) => sum + calculateTaskProgress(task), 0) / projectTasks.length)
+          : 0
+      };
+    });
+  }, [projects, tasks]);
+
+  const enhancedTasks = useMemo(() => {
+    return tasks.map(task => ({
+      ...task,
+      progress: calculateTaskProgress(task),
+      riskLevel: getTaskRiskLevel(task),
+      isOverdue: isAfter(new Date(), new Date(task.endDate)) && task.status !== 'completed'
+    }));
+  }, [tasks]);
+
   return (
     <DataContext.Provider value={{
-      projects,
+      projects: enhancedProjects,
       teams,
-      tasks,
+      tasks: enhancedTasks,
+      activities,
       addProject,
       updateProject,
       deleteProject,
@@ -374,7 +639,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTask,
       updateTask,
       deleteTask,
-      getAllMembers
+      getAllMembers,
+      getProjectAnalytics,
+      getTeamAnalytics,
+      getDashboardStats,
+      getTasksByMember,
+      getOverdueTasks,
+      getRecentActivities,
+      logDailyAchievement,
+      startTask,
+      completeTask,
+      calculateTaskProgress,
+      getTaskRiskLevel
     }}>
       {children}
     </DataContext.Provider>

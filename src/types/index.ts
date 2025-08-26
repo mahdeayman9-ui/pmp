@@ -33,6 +33,10 @@ export interface Project {
   teamId: string;
   phases: Phase[];
   createdAt: Date;
+  // إضافة حقول جديدة للربط
+  totalTasks?: number;
+  completedTasks?: number;
+  overdueTasks?: number;
 }
 
 export interface Phase {
@@ -53,25 +57,35 @@ export interface Task {
   description: string;
   status: 'todo' | 'in-progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
-  assignedToUserId: string | null; // Changed: now assigns to individual user
-  assignedToName?: string; // Helper field for display
+  assignedToUserId: string | null;
+  assignedToName?: string;
   startDate: Date;
   endDate: Date;
   progress: number;
   phaseId: string;
-  projectId: string; // Added: direct reference to project
+  projectId: string;
   createdAt: Date;
-  // Enhanced task tracking fields
+  
+  // حقول متتبع المهام المحسنة
   dailyAchievements?: DailyAchievement[];
   totalTarget?: number;
   actualStartDate?: Date;
   actualEndDate?: Date;
   plannedEffortHours?: number;
   actualEffortHours?: number;
+  
+  // حقول جديدة للربط والتحليل
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+  completionRate?: number;
+  timeSpent?: number; // بالدقائق
+  isOverdue?: boolean;
+  lastActivity?: Date;
+  attachments?: TaskAttachment[];
+  comments?: TaskComment[];
 }
 
 export interface DailyAchievement {
-  date: string; // ISO date string (YYYY-MM-DD)
+  date: string;
   value: number;
   checkIn?: {
     timestamp: string;
@@ -89,17 +103,42 @@ export interface DailyAchievement {
   };
   media?: MediaItem[];
   voiceNotes?: VoiceNote[];
+  notes?: string;
+  workHours?: number;
 }
 
 export interface MediaItem {
   url: string;
   type: 'image' | 'video';
   timestamp: string;
+  name?: string;
+  size?: number;
 }
 
 export interface VoiceNote {
   audioUrl: string;
   timestamp: string;
+  duration?: number;
+  transcription?: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedBy: string;
+  uploadedAt: Date;
+}
+
+export interface TaskComment {
+  id: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface AuthContextType {
@@ -107,4 +146,49 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+}
+
+// إضافة واجهات جديدة للتحليلات
+export interface ProjectAnalytics {
+  projectId: string;
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  overdueTasks: number;
+  averageCompletionTime: number;
+  teamProductivity: number;
+  riskScore: number;
+}
+
+export interface TeamAnalytics {
+  teamId: string;
+  memberCount: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalTasks: number;
+  averageTaskCompletion: number;
+  workloadDistribution: { memberId: string; taskCount: number }[];
+}
+
+export interface DashboardStats {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  totalMembers: number;
+  activeMembers: number;
+  recentActivities: Activity[];
+}
+
+export interface Activity {
+  id: string;
+  type: 'task_created' | 'task_completed' | 'project_started' | 'member_added' | 'achievement_logged';
+  description: string;
+  userId: string;
+  userName: string;
+  entityId: string;
+  entityType: 'task' | 'project' | 'team';
+  timestamp: Date;
 }
