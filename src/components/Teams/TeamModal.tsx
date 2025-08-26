@@ -32,25 +32,16 @@ export const TeamModal: React.FC<TeamModalProps> = ({ isOpen, onClose }) => {
     // توليد بيانات الدخول لقائد الفريق
     const credentials = generateCredentials();
     
-    // إنشاء حساب قائد الفريق
-    const teamLeaderId = Date.now().toString();
-    const teamLeader = {
-      id: teamLeaderId,
-      email: formData.leaderEmail,
-      name: formData.leaderName,
-      role: 'member' as const,
-      username: credentials.username,
-      generatedPassword: credentials.password,
-      teamId: Date.now().toString() // سيتم تحديثه بعد إنشاء الفريق
-    };
-
+    // إنشاء الفريق أولاً
+    const teamId = Date.now().toString();
     const newTeam = {
+      id: teamId,
       name: formData.name,
       description: formData.description,
       members: [
         {
           id: '1',
-          userId: teamLeaderId,
+          userId: Date.now().toString(),
           name: formData.leaderName,
           email: formData.leaderEmail,
           role: 'lead' as const,
@@ -61,8 +52,16 @@ export const TeamModal: React.FC<TeamModalProps> = ({ isOpen, onClose }) => {
 
     addTeam(newTeam);
     
-    // تحديث معرف الفريق في حساب القائد
-    teamLeader.teamId = newTeam.id || Date.now().toString();
+    // إنشاء حساب قائد الفريق
+    const teamLeader = {
+      id: Date.now().toString(),
+      email: formData.leaderEmail,
+      name: formData.leaderName,
+      role: 'member' as const,
+      username: credentials.username,
+      generatedPassword: credentials.password,
+      teamId: teamId
+    };
     
     // إضافة المستخدم الجديد
     if (addUser) {
@@ -72,13 +71,7 @@ export const TeamModal: React.FC<TeamModalProps> = ({ isOpen, onClose }) => {
     // عرض بيانات الدخول المولدة
     setGeneratedCredentials(credentials);
     
-    setFormData({ 
-      name: '', 
-      description: '', 
-      leaderName: '', 
-      leaderEmail: '' 
-    });
-    onClose();
+    // لا نغلق النموذج هنا، سيتم إغلاقه عند إغلاق نافذة البيانات
   };
 
   if (!isOpen) return null;
@@ -216,6 +209,16 @@ export const TeamModal: React.FC<TeamModalProps> = ({ isOpen, onClose }) => {
             <button
               onClick={() => setGeneratedCredentials(null)}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => {
+                setGeneratedCredentials(null);
+                setFormData({ 
+                  name: '', 
+                  description: '', 
+                  leaderName: '', 
+                  leaderEmail: '' 
+                });
+                onClose();
+              }}
             >
               فهمت، أغلق النافذة
             </button>
