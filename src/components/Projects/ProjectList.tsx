@@ -61,49 +61,46 @@ export const ProjectList: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map((project) => (
-          <Link
+          <div
             key={project.id}
-            to={`/projects/${project.id}`}
-            className="block bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+            className="block bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow p-6"
           >
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
-                  {getStatusText(project.status)}
-                </span>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
+                {getStatusText(project.status)}
+              </span>
+            </div>
+            
+            <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+            
+            <div className="space-y-3">
+              <div className="flex items-center text-sm text-gray-500">
+                <Calendar className="h-4 w-4 ml-2" />
+                {format(project.startDate, 'dd MMM', { locale: ar })} - {format(project.endDate, 'dd MMM yyyy', { locale: ar })}
               </div>
               
-              <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+              <div className="flex items-center text-sm text-gray-500">
+                <Users className="h-4 w-4 ml-2" />
+                {getTeamName(project.teamId)}
+              </div>
               
-              <div className="space-y-3">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center text-sm text-gray-500">
-                  <Calendar className="h-4 w-4 ml-2" />
-                  {format(project.startDate, 'dd MMM', { locale: ar })} - {format(project.endDate, 'dd MMM yyyy', { locale: ar })}
+                  <BarChart className="h-4 w-4 ml-2" />
+                  التقدم
                 </div>
-                
-                <div className="flex items-center text-sm text-gray-500">
-                  <Users className="h-4 w-4 ml-2" />
-                  {getTeamName(project.teamId)}
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <BarChart className="h-4 w-4 ml-2" />
-                    التقدم
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{project.progress}%</span>
-                </div>
-                
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${project.progress}%` }}
-                  />
-                </div>
+                <span className="text-sm font-medium text-gray-900">{project.progress}%</span>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${project.progress}%` }}
+                />
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 
