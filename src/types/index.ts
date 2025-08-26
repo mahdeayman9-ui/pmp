@@ -47,8 +47,8 @@ export interface Phase {
   endDate: Date;
   status: 'not-started' | 'in-progress' | 'completed';
   progress: number;
-  tasks: Task[];
   projectId: string;
+  createdAt: Date;
 }
 
 export interface Task {

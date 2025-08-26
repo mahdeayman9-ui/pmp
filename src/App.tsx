@@ -14,6 +14,7 @@ import { TaskTracker } from './components/Tasks/TaskTracker';
 import { GanttChart } from './components/Gantt/GanttChart';
 import { Analytics } from './components/Analytics/Analytics';
 import { Reports } from './components/Reports/Reports';
+import { PhaseList } from './components/Phases/PhaseList';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="projects" element={<ProjectList />} />
+                <Route path="phases" element={<PhaseList />} />
                 <Route path="teams" element={<TeamList />} />
                 <Route path="members" element={<MemberList />} />
                 <Route path="tasks" element={<TaskList />} />

@@ -6,6 +6,7 @@ interface DataContextType {
   projects: Project[];
   teams: Team[];
   tasks: Task[];
+  phases: Phase[];
   activities: Activity[];
   
   // CRUD operations
@@ -18,6 +19,9 @@ interface DataContextType {
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  addPhase: (phase: Omit<Phase, 'id' | 'createdAt'>) => void;
+  updatePhase: (id: string, updates: Partial<Phase>) => void;
+  deletePhase: (id: string) => void;
   
   // Helper functions
   getAllTeams: () => Array<{ id: string; name: string; description: string; memberCount: number }>;
@@ -27,6 +31,7 @@ interface DataContextType {
   getTasksByTeam: (teamId: string) => Task[];
   getOverdueTasks: () => Task[];
   getRecentActivities: (limit?: number) => Activity[];
+  getPhasesByProject: (projectId: string) => Phase[];
   
   // متتبع المهام المحسن
   logDailyAchievement: (taskId: string, achievement: any) => void;
@@ -73,41 +78,7 @@ const mockProjects: Project[] = [
     status: 'in-progress',
     progress: 65,
     teamId: '1',
-    phases: [
-      {
-        id: '1',
-        name: 'التخطيط والتصميم',
-        description: 'مرحلة التخطيط الأولي وتصميم واجهة المستخدم',
-        startDate: subDays(new Date(), 20),
-        endDate: subDays(new Date(), 10),
-        status: 'completed',
-        progress: 100,
-        tasks: [],
-        projectId: '1'
-      },
-      {
-        id: '2',
-        name: 'التطوير',
-        description: 'مرحلة التطوير الأساسية',
-        startDate: subDays(new Date(), 10),
-        endDate: addDays(new Date(), 20),
-        status: 'in-progress',
-        progress: 70,
-        tasks: [],
-        projectId: '1'
-      },
-      {
-        id: '3',
-        name: 'الاختبار والنشر',
-        description: 'مرحلة الاختبار والنشر',
-        startDate: addDays(new Date(), 20),
-        endDate: addDays(new Date(), 40),
-        status: 'not-started',
-        progress: 0,
-        tasks: [],
-        projectId: '1'
-      }
-    ],
+    phases: [],
     createdAt: subDays(new Date(), 20)
   },
   {
@@ -119,31 +90,66 @@ const mockProjects: Project[] = [
     status: 'in-progress',
     progress: 35,
     teamId: '2',
-    phases: [
-      {
-        id: '4',
-        name: 'البحث',
-        description: 'بحث المستخدمين وتحليل المنافسين',
-        startDate: subDays(new Date(), 10),
-        endDate: new Date(),
-        status: 'in-progress',
-        progress: 80,
-        tasks: [],
-        projectId: '2'
-      },
-      {
-        id: '5',
-        name: 'مرحلة التصميم',
-        description: 'إنشاء تصاميم واجهة المستخدم الجديدة',
-        startDate: new Date(),
-        endDate: addDays(new Date(), 15),
-        status: 'not-started',
-        progress: 0,
-        tasks: [],
-        projectId: '2'
-      }
-    ],
+    phases: [],
     createdAt: subDays(new Date(), 10)
+  }
+];
+
+const mockPhases: Phase[] = [
+  {
+    id: '1',
+    name: 'التخطيط والتصميم',
+    description: 'مرحلة التخطيط الأولي وتصميم واجهة المستخدم',
+    startDate: subDays(new Date(), 20),
+    endDate: subDays(new Date(), 10),
+    status: 'completed',
+    progress: 100,
+    projectId: '1',
+    createdAt: subDays(new Date(), 20)
+  },
+  {
+    id: '2',
+    name: 'التطوير',
+    description: 'مرحلة التطوير الأساسية',
+    startDate: subDays(new Date(), 10),
+    endDate: addDays(new Date(), 20),
+    status: 'in-progress',
+    progress: 70,
+    projectId: '1',
+    createdAt: subDays(new Date(), 15)
+  },
+  {
+    id: '3',
+    name: 'الاختبار والنشر',
+    description: 'مرحلة الاختبار والنشر',
+    startDate: addDays(new Date(), 20),
+    endDate: addDays(new Date(), 40),
+    status: 'not-started',
+    progress: 0,
+    projectId: '1',
+    createdAt: subDays(new Date(), 10)
+  },
+  {
+    id: '4',
+    name: 'البحث',
+    description: 'بحث المستخدمين وتحليل المنافسين',
+    startDate: subDays(new Date(), 10),
+    endDate: new Date(),
+    status: 'in-progress',
+    progress: 80,
+    projectId: '2',
+    createdAt: subDays(new Date(), 10)
+  },
+  {
+    id: '5',
+    name: 'مرحلة التصميم',
+    description: 'إنشاء تصاميم واجهة المستخدم الجديدة',
+    startDate: new Date(),
+    endDate: addDays(new Date(), 15),
+    status: 'not-started',
+    progress: 0,
+    projectId: '2',
+    createdAt: subDays(new Date(), 5)
   }
 ];
 
@@ -159,7 +165,7 @@ const mockTasks: Task[] = [
     startDate: subDays(new Date(), 15),
     endDate: subDays(new Date(), 5),
     progress: 100,
-    phaseId: '2',
+    phaseId: '1',
     projectId: '1',
     createdAt: subDays(new Date(), 15),
     dailyAchievements: [
@@ -280,6 +286,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [teams, setTeams] = useState<Team[]>(mockTeams);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [phases, setPhases] = useState<Phase[]>(mockPhases);
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
 
   // Helper functions محسنة
@@ -410,6 +417,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .slice(0, limit);
   };
 
+  const getPhasesByProject = (projectId: string): Phase[] => {
+    return phases.filter(phase => phase.projectId === projectId);
+  };
   // متتبع المهام المحسن
   const logDailyAchievement = (taskId: string, achievement: any) => {
     setTasks(prev => prev.map(task => {
@@ -596,11 +606,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const enhancedProjects = useMemo(() => {
     return projects.map(project => {
       const projectTasks = tasks.filter(t => t.projectId === project.id);
+      const projectPhases = phases.filter(p => p.projectId === project.id);
       const completedTasks = projectTasks.filter(t => t.status === 'completed');
       const overdueTasks = projectTasks.filter(t => t.isOverdue);
       
       return {
         ...project,
+        phases: projectPhases,
         totalTasks: projectTasks.length,
         completedTasks: completedTasks.length,
         overdueTasks: overdueTasks.length,
@@ -609,7 +621,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           : 0
       };
     });
-  }, [projects, tasks]);
+  }, [projects, tasks, phases]);
 
   const enhancedTasks = useMemo(() => {
     return tasks.map(task => ({
@@ -625,6 +637,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       projects: enhancedProjects,
       teams,
       tasks: enhancedTasks,
+      phases,
       activities,
       addProject,
       updateProject,
@@ -635,6 +648,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTask,
       updateTask,
       deleteTask,
+      addPhase,
+      updatePhase,
+      deletePhase,
       getAllTeams,
       getProjectAnalytics,
       getTeamAnalytics,
@@ -642,6 +658,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       getTasksByTeam,
       getOverdueTasks,
       getRecentActivities,
+      getPhasesByProject,
       logDailyAchievement,
       startTask,
       completeTask,

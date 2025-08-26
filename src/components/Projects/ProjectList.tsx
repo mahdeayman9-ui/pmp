@@ -7,7 +7,7 @@ import { ar } from 'date-fns/locale';
 import { ProjectModal } from './ProjectModal';
 
 export const ProjectList: React.FC = () => {
-  const { projects, teams } = useData();
+  const { projects, teams, phases } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
@@ -43,6 +43,9 @@ export const ProjectList: React.FC = () => {
     return team?.name || 'فريق غير معروف';
   };
 
+  const getProjectPhasesCount = (projectId: string) => {
+    return phases.filter(p => p.projectId === projectId).length;
+  };
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -85,6 +88,10 @@ export const ProjectList: React.FC = () => {
                 {getTeamName(project.teamId)}
               </div>
               
+              <div className="flex items-center text-sm text-gray-500">
+                <BarChart className="h-4 w-4 ml-2" />
+                {getProjectPhasesCount(project.id)} مرحلة
+              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-sm text-gray-500">
                   <BarChart className="h-4 w-4 ml-2" />

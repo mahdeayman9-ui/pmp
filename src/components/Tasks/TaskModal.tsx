@@ -9,7 +9,7 @@ interface TaskModalProps {
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
-  const { projects, addTask, getAllTeams } = useData();
+  const { projects, phases, addTask, getAllTeams } = useData();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -25,7 +25,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
   // Get available phases based on selected project
   const availablePhases = formData.projectId 
-    ? projects.find(p => p.id === formData.projectId)?.phases || []
+    ? phases.filter(p => p.projectId === formData.projectId)
     : [];
 
   const handleProjectChange = (projectId: string) => {

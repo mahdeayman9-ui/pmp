@@ -10,13 +10,15 @@ import {
   Calendar,
   UserCheck,
   LogOut,
-  FileText
+  FileText,
+  GitBranch
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const navigation = [
   { name: 'لوحة التحكم', href: '/', icon: LayoutDashboard },
   { name: 'المشاريع', href: '/projects', icon: FolderKanban },
+  { name: 'مراحل المشاريع', href: '/phases', icon: GitBranch },
   { name: 'الفرق', href: '/teams', icon: Users },
   { name: 'الأعضاء', href: '/members', icon: UserCheck },
   { name: 'المهام', href: '/tasks', icon: CheckSquare },

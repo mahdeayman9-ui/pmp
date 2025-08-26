@@ -5,6 +5,7 @@ import { Bell, Search } from 'lucide-react';
 const pageNames: { [key: string]: string } = {
   '/': 'لوحة التحكم',
   '/projects': 'المشاريع',
+  '/phases': 'مراحل المشاريع',
   '/teams': 'الفرق',
   '/members': 'الأعضاء',
   '/tasks': 'المهام',
