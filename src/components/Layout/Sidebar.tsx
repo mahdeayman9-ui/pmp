@@ -22,6 +22,7 @@ const navigation = [
   { name: 'متتبع المهام', href: '/task-tracker', icon: Target },
   { name: 'مخطط جانت', href: '/gantt', icon: Calendar },
   { name: 'التحليلات', href: '/analytics', icon: BarChart3 },
+  { name: 'التقارير', href: '/reports', icon: FileText },
 ];
 
 export const Sidebar: React.FC = () => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../../contexts/DataContext';
 import { format, addDays } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 // --- Helpers ---
 const formatDate = (date) => {
@@ -871,7 +872,7 @@ function TaskCard({
 }
 
 export const TaskTracker: React.FC = () => {
-  const { tasks, updateTask, deleteTask } = useData();
+  const { tasks, updateTask, deleteTask, logDailyAchievement, startTask, completeTask, calculateTaskProgress, getTaskRiskLevel } = useData();
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [modal, setModal] = useState({ visible: false, message: '', onConfirm: null });
 
@@ -908,8 +909,8 @@ export const TaskTracker: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Task Progress Tracker</h2>
-        <p className="text-gray-600">Track daily progress, check-ins, and achievements for your tasks</p>
+        <h2 className="text-2xl font-bold text-gray-900">متتبع تقدم المهام</h2>
+        <p className="text-gray-600">تتبع التقدم اليومي وتسجيل الدخول والإنجازات لمهامك</p>
       </div>
 
       {/* Task List */}
@@ -926,6 +927,17 @@ export const TaskTracker: React.FC = () => {
           />
         ))}
       </div>
+
+      {/* Empty State */}
+      {enhancedTasks.length === 0 && (
+        <div className="text-center py-12">
+          <div className="mx-auto h-12 w-12 text-gray-400 mb-4">📋</div>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">لا توجد مهام</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            ابدأ بإضافة مهام لتتبع تقدمها.
+          </p>
+        </div>
+      )}
 
       {/* Modal */}
       <AnimatePresence>

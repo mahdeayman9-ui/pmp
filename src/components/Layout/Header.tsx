@@ -11,6 +11,7 @@ const pageNames: { [key: string]: string } = {
   '/task-tracker': 'متتبع المهام',
   '/gantt': 'مخطط جانت',
   '/analytics': 'التحليلات',
+  '/reports': 'التقارير',
 };
 
 export const Header: React.FC = () => {
