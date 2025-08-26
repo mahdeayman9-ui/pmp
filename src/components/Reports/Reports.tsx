@@ -134,50 +134,48 @@ export const Reports: React.FC = () => {
   // تقرير الحضور والانصراف
   const attendanceReport = useMemo(() => {
     const attendanceData = new Map();
-    const members = getAllMembers();
-
-    members.forEach(member => {
-      const memberTasks = filteredTasks.filter(t => t.assignedToUserId === member.id);
-      let totalCheckIns = 0;
-      let totalWorkHours = 0;
-      let daysWorked = 0;
-      let overtimeHours = 0;
-
-      memberTasks.forEach(task => {
-        if (task.dailyAchievements) {
-          task.dailyAchievements.forEach(achievement => {
-            if (achievement.checkIn) {
-              totalCheckIns++;
-              daysWorked++;
-              
-              if (achievement.checkOut) {
-                const duration = new Date(achievement.checkOut.timestamp).getTime() - 
-                               new Date(achievement.checkIn.timestamp).getTime();
-                const hours = duration / (1000 * 60 * 60);
-                totalWorkHours += hours;
-                
-                // حساب الوقت الإضافي (أكثر من 8 ساعات)
-                if (hours > 8) {
-                  overtimeHours += hours - 8;
-                }
-              }
+    
+    // جمع بيانات الحضور والانصراف من المهام
+    filteredTasks.forEach(task => {
+      if (task.dailyAchievements) {
+        task.dailyAchievements.forEach(achievement => {
+          if (achievement.checkIn || achievement.checkOut) {
+            const teamName = task.assignedToTeamName || 'غير محدد';
+            const key = `${teamName}-${achievement.date}`;
+            
+            if (!attendanceData.has(key)) {
+              attendanceData.set(key, {
+                teamName,
+                date: achievement.date,
+                checkIns: 0,
+                checkOuts: 0,
+                totalWorkHours: 0,
+                taskTitle: task.title,
+                projectName: projects.find(p => p.id === task.projectId)?.name || 'مشروع غير معروف'
+              });
             }
-          });
-        }
-      });
-
-      attendanceData.set(member.id, {
-        memberName: member.name,
-        teamName: member.teamName,
-        totalCheckIns,
-        totalWorkHours: Math.round(totalWorkHours * 100) / 100,
-        daysWorked,
-        overtimeHours: Math.round(overtimeHours * 100) / 100,
-        avgHoursPerDay: daysWorked > 0 ? Math.round((totalWorkHours / daysWorked) * 100) / 100 : 0
-      });
+            
+            const dayData = attendanceData.get(key);
+            
+            if (achievement.checkIn) {
+              dayData.checkIns += 1;
+            }
+            
+            if (achievement.checkOut && achievement.checkIn) {
+              dayData.checkOuts += 1;
+              const duration = new Date(achievement.checkOut.timestamp).getTime() - 
+                             new Date(achievement.checkIn.timestamp).getTime();
+              dayData.totalWorkHours += duration / (1000 * 60 * 60);
+            }
+          }
+        });
+      }
     });
 
-    return Array.from(attendanceData.values());
+    return Array.from(attendanceData.values()).map(data => ({
+      ...data,
+      totalWorkHours: Math.round(data.totalWorkHours * 100) / 100
+    }));
   }, [filteredTasks, getAllMembers]);
 
   // تقرير الوسائط والملاحظات الصوتية
@@ -312,40 +310,77 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      {/* الإنتاجية اليومية */}
+      {/* جدول الإنتاجية اليومية */}
       <div className="bg-white p-6 rounded-lg shadow border">
         <h3 className="text-lg font-semibold mb-4">الإنتاجية اليومية</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={dailyProductivityReport.slice(-30)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickFormatter={(date) => format(new Date(date), 'dd/MM')} />
-              <YAxis />
-              <Tooltip 
-                labelFormatter={(date) => format(new Date(date), 'dd MMMM yyyy', { locale: ar })}
-                formatter={(value, name) => [value, name === 'totalAchievements' ? 'إجمالي الإنجازات' : 'المهام المنجزة']}
-              />
-              <Area type="monotone" dataKey="totalAchievements" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
-              <Area type="monotone" dataKey="tasksWorked" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.6} />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">التاريخ</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي الإنجازات</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المهام المنجزة</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ساعات العمل</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">مرات الحضور</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الوسائط</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {dailyProductivityReport.slice(-10).map((day, index) => (
+                <tr key={index}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {format(new Date(day.date), 'dd MMM yyyy', { locale: ar })}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{day.totalAchievements}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{day.tasksWorked}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">{day.totalWorkHours.toFixed(1)}س</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600">{day.totalCheckIns}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{day.mediaUploaded + day.voiceNotes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* أداء الفرق */}
+      {/* جدول أداء الفرق */}
       <div className="bg-white p-6 rounded-lg shadow border">
         <h3 className="text-lg font-semibold mb-4">أداء الفرق</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={teamPerformanceReport}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="teamName" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="efficiency" fill="#3B82F6" name="الكفاءة %" />
-              <Bar dataKey="avgProgress" fill="#10B981" name="متوسط التقدم %" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفريق</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي المهام</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المكتملة</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المتأخرة</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإنجازات</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الكفاءة</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">متوسط التقدم</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {teamPerformanceReport.map((team, index) => (
+                <tr key={index}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{team.teamName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{team.totalTasks}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{team.completedTasks}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">{team.overdueTasks}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{team.totalAchievements}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      team.efficiency >= 80 ? 'bg-green-100 text-green-800' :
+                      team.efficiency >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {team.efficiency}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{team.avgProgress}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -576,43 +611,31 @@ export const Reports: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الموظف</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">التاريخ</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفريق</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">أيام العمل</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي الساعات</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">متوسط الساعات/يوم</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الوقت الإضافي</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المهمة</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المشروع</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">مرات الحضور</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">مرات الانصراف</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ساعات العمل</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {attendanceReport.map((member, index) => (
+              {attendanceReport.map((record, index) => (
                 <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{member.memberName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.teamName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.daysWorked}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{member.totalWorkHours}س</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{member.avgHoursPerDay}س</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">{member.overtimeHours}س</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {format(new Date(record.date), 'dd MMM yyyy', { locale: ar })}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.teamName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.taskTitle}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.projectName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{record.checkIns}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{record.checkOuts}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">{record.totalWorkHours}س</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow border">
-        <h3 className="text-lg font-semibold mb-4">توزيع ساعات العمل حسب الموظف</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={attendanceReport}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="memberName" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="totalWorkHours" fill="#3B82F6" name="إجمالي الساعات" />
-              <Bar dataKey="overtimeHours" fill="#F59E0B" name="الوقت الإضافي" />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
       </div>
     </div>

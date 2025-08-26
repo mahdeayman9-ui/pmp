@@ -731,22 +731,14 @@ function TaskCard({
   };
 
   const handleEndTask = () => {
-    if (!isMissionComplete) {
-      setModal({
-        visible: true,
-        message: `Cannot end task. The total target of ${tasksWithDerivedData.totalTarget} has not been met. You have achieved ${tasksWithDerivedData.totalAchieved}.`,
-        onConfirm: () => setModal({ visible: false, message: '' }),
-      });
-    } else {
-      const updatedTask = {
-        ...task,
-        status: 'completed',
-        actualEndDate: new Date(),
-        progress: 100,
-        lastActivity: new Date()
-      };
-      updateTask(task.id, updatedTask);
-    }
+    const updatedTask = {
+      ...task,
+      status: 'completed',
+      actualEndDate: new Date(),
+      progress: 100,
+      lastActivity: new Date()
+    };
+    updateTask(task.id, updatedTask);
   };
 
   return (
@@ -855,8 +847,8 @@ function TaskCard({
                 </button>
                 <button
                   onClick={handleEndTask}
-                  disabled={!task.actualStartDate || !!task.actualEndDate || ((tasksWithDerivedData.totalTarget || 0) > 0 && !isMissionComplete)}
-                  title={!isMissionComplete ? `Complete the task target of ${tasksWithDerivedData.totalTarget} to end the task.` : ''}
+                  disabled={!task.actualStartDate || !!task.actualEndDate}
+                  title={!task.actualStartDate ? "Start the task first" : task.actualEndDate ? "Task already ended" : "End task and record actual end date"}
                   className="flex-1 py-2 px-4 rounded-lg bg-red-600 text-white font-bold disabled:bg-gray-300 disabled:text-gray-500"
                 >
                   End Task
