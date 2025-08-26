@@ -24,28 +24,28 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-accent-light/30 via-accent-light/20 to-accent-dark/20 flex items-center justify-center p-4">
+      <div className="card-professional p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <LogIn className="h-8 w-8 text-blue-600" />
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-accent-light to-accent-dark/20 rounded-full flex items-center justify-center mb-4 shadow-soft">
+            <LogIn className="h-8 w-8 text-accent-dark" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">أهلاً بك مرة أخرى</h1>
-          <p className="text-gray-600 mt-2">سجل دخولك إلى حساب إدارة المشاريع</p>
+          <h1 className="text-2xl font-bold gradient-text">أهلاً بك مرة أخرى</h1>
+          <p className="text-accent-dark/80 mt-2">سجل دخولك إلى حساب إدارة المشاريع</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-accent-dark mb-2">
               البريد الإلكتروني
             </label>
             <div className="relative">
-              <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-dark/60 h-5 w-5" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pr-10 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-professional pr-10 pl-4 py-3"
                 placeholder="أدخل بريدك الإلكتروني"
                 required
               />
@@ -53,16 +53,16 @@ export const Login: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-accent-dark mb-2">
               كلمة المرور
             </label>
             <div className="relative">
-              <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-dark/60 h-5 w-5" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pr-10 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-professional pr-10 pl-4 py-3"
                 placeholder="أدخل كلمة المرور"
                 required
               />
@@ -70,7 +70,7 @@ export const Login: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg shadow-soft">
               {error}
             </div>
           )}
@@ -78,14 +78,14 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary w-full py-3 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600 mb-2">حسابات تجريبية:</p>
+        <div className="mt-6 p-4 bg-accent-light/20 rounded-lg border border-accent-light/30">
+          <p className="text-xs text-accent-dark/80 mb-2">حسابات تجريبية:</p>
           <ul className="text-xs space-y-1">
             <li><strong>مدير:</strong> admin@demo.com / password</li>
             <li><strong>مدير فريق:</strong> manager@demo.com / password</li>

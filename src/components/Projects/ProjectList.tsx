@@ -56,7 +56,7 @@ export const ProjectList: React.FC = () => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 space-x-reverse"
+          className="btn-primary px-4 py-2 flex items-center space-x-2 space-x-reverse"
         >
           <Plus className="h-5 w-5" />
           <span>مشروع جديد</span>
@@ -67,43 +67,43 @@ export const ProjectList: React.FC = () => {
         {projects.map((project) => (
           <div
             key={project.id}
-            className="block bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow p-6"
+            className="card-professional p-6"
           >
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+              <h3 className="text-lg font-semibold gradient-text">{project.name}</h3>
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
                 {getStatusText(project.status)}
               </span>
             </div>
             
-            <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+            <p className="text-accent-dark/80 mb-4 line-clamp-2">{project.description}</p>
             
             <div className="space-y-3">
-              <div className="flex items-center text-sm text-gray-500">
+              <div className="flex items-center text-sm text-accent-dark/70">
                 <Calendar className="h-4 w-4 ml-2" />
                 {format(project.startDate, 'dd MMM', { locale: ar })} - {format(project.endDate, 'dd MMM yyyy', { locale: ar })}
               </div>
               
-              <div className="flex items-center text-sm text-gray-500">
+              <div className="flex items-center text-sm text-accent-dark/70">
                 <Users className="h-4 w-4 ml-2" />
                 {getTeamName(project.teamId)}
               </div>
               
-              <div className="flex items-center text-sm text-gray-500">
+              <div className="flex items-center text-sm text-accent-dark/70">
                 <BarChart className="h-4 w-4 ml-2" />
                 {getProjectPhasesCount(project.id)} مرحلة
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-accent-dark/70">
                   <BarChart className="h-4 w-4 ml-2" />
                   التقدم
                 </div>
-                <span className="text-sm font-medium text-gray-900">{project.progress}%</span>
+                <span className="text-sm font-medium gradient-text">{project.progress}%</span>
               </div>
               
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="progress-bar">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="progress-fill"
                   style={{ width: `${project.progress}%` }}
                 />
               </div>

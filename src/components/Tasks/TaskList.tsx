@@ -128,7 +128,7 @@ export const TaskList: React.FC = () => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 space-x-reverse"
+          className="btn-primary px-4 py-2 flex items-center space-x-2 space-x-reverse"
         >
           <Plus className="h-5 w-5" />
           <span>مهمة جديدة</span>
@@ -137,30 +137,30 @@ export const TaskList: React.FC = () => {
 
       {/* إحصائيات سريعة */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="card-professional p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">إجمالي المهام</p>
-              <p className="text-2xl font-bold text-gray-900">{userFilteredTasks.length}</p>
+              <p className="text-sm text-accent-dark/80">إجمالي المهام</p>
+              <p className="text-2xl font-bold gradient-text">{userFilteredTasks.length}</p>
             </div>
-            <Target className="h-8 w-8 text-blue-500" />
+            <Target className="h-8 w-8 text-accent-dark" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="card-professional p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">قيد التنفيذ</p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-sm text-accent-dark/80">قيد التنفيذ</p>
+              <p className="text-2xl font-bold text-accent-dark">
                 {userFilteredTasks.filter(t => t.status === 'in-progress').length}
               </p>
             </div>
-            <Clock className="h-8 w-8 text-blue-500" />
+            <Clock className="h-8 w-8 text-accent-dark" />
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="card-professional p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">مكتملة</p>
+              <p className="text-sm text-accent-dark/80">مكتملة</p>
               <p className="text-2xl font-bold text-green-600">
                 {userFilteredTasks.filter(t => t.status === 'completed').length}
               </p>
@@ -168,10 +168,10 @@ export const TaskList: React.FC = () => {
             <div className="h-8 w-8 text-green-500">✅</div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="card-professional p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">متأخرة</p>
+              <p className="text-sm text-accent-dark/80">متأخرة</p>
               <p className="text-2xl font-bold text-red-600">
                 {userFilteredTasks.filter(t => t.isOverdue).length}
               </p>
@@ -182,17 +182,17 @@ export const TaskList: React.FC = () => {
       </div>
 
       {/* الفلاتر */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="card-professional p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center space-x-2 space-x-reverse">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">فلترة حسب:</span>
+            <Filter className="h-5 w-5 text-accent-dark/70" />
+            <span className="text-sm font-medium text-accent-dark">فلترة حسب:</span>
           </div>
           
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="select-professional px-3 py-1 text-sm"
           >
             <option value="all">جميع الحالات</option>
             <option value="todo">لم تبدأ</option>
@@ -203,7 +203,7 @@ export const TaskList: React.FC = () => {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="select-professional px-3 py-1 text-sm"
           >
             <option value="all">جميع الأولويات</option>
             <option value="high">عالية</option>
@@ -214,7 +214,7 @@ export const TaskList: React.FC = () => {
           <select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="select-professional px-3 py-1 text-sm"
           >
             <option value="all">جميع الفرق</option>
             {allTeams.map((team) => (
@@ -231,7 +231,7 @@ export const TaskList: React.FC = () => {
                 setPriorityFilter('all');
                 setTeamFilter('all');
               }}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-sm text-accent-dark hover:text-accent-dark/80"
             >
               مسح الفلاتر
             </button>

@@ -12,8 +12,9 @@ html {
 }
 
 body {
-  background: linear-gradient(135deg, #f0f9fa 0%, #daf1f4 100%);
+  background: linear-gradient(135deg, #f0f9fa 0%, #b4e1e6 50%, #5f979d 100%);
   min-height: 100vh;
+  background-attachment: fixed;
 }
 
 /* Custom RTL utilities */
@@ -52,39 +53,39 @@ body {
 /* Professional Components */
 @layer components {
   .card-professional {
-    @apply bg-white rounded-xl shadow-soft border border-primary-100 hover:shadow-medium transition-all duration-300;
+    @apply bg-white/95 backdrop-blur-sm rounded-xl shadow-soft border border-accent-light/30 hover:shadow-medium hover:border-accent-dark/40 transition-all duration-300;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transform hover:scale-105 transition-all duration-200 shadow-soft hover:shadow-medium;
+    @apply bg-gradient-to-r from-accent-dark to-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:from-primary-600 hover:to-primary-700 transform hover:scale-105 transition-all duration-200 shadow-soft hover:shadow-glow;
   }
   
   .btn-secondary {
-    @apply bg-gradient-to-r from-primary-100 to-primary-200 text-primary-700 px-6 py-3 rounded-lg font-medium hover:from-primary-200 hover:to-primary-300 transform hover:scale-105 transition-all duration-200 shadow-soft;
+    @apply bg-gradient-to-r from-accent-light/50 to-accent-light text-accent-dark px-6 py-3 rounded-lg font-medium hover:from-accent-light hover:to-accent-dark/20 transform hover:scale-105 transition-all duration-200 shadow-soft;
   }
   
   .btn-danger {
-    @apply bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-soft hover:shadow-medium;
+    @apply bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-soft hover:shadow-glow;
   }
   
   .btn-success {
-    @apply bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all duration-200 shadow-soft hover:shadow-medium;
+    @apply bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all duration-200 shadow-soft hover:shadow-glow;
   }
   
   .input-professional {
-    @apply w-full px-4 py-3 border-2 border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all duration-200 bg-white/80 backdrop-blur-sm;
+    @apply w-full px-4 py-3 border-2 border-accent-light/50 rounded-lg focus:ring-2 focus:ring-accent-dark/30 focus:border-accent-dark transition-all duration-200 bg-white/90 backdrop-blur-sm;
   }
   
   .select-professional {
-    @apply w-full px-4 py-3 border-2 border-primary-200 rounded-lg focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all duration-200 bg-white/80 backdrop-blur-sm;
+    @apply w-full px-4 py-3 border-2 border-accent-light/50 rounded-lg focus:ring-2 focus:ring-accent-dark/30 focus:border-accent-dark transition-all duration-200 bg-white/90 backdrop-blur-sm;
   }
   
   .table-professional {
-    @apply min-w-full divide-y divide-primary-200 bg-white/80 backdrop-blur-sm rounded-lg overflow-hidden shadow-soft;
+    @apply min-w-full divide-y divide-accent-light/40 bg-white/90 backdrop-blur-sm rounded-lg overflow-hidden shadow-soft;
   }
   
   .table-header {
-    @apply bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-4 text-right text-sm font-semibold text-primary-800 uppercase tracking-wider;
+    @apply bg-gradient-to-r from-accent-light/30 to-accent-light/50 px-6 py-4 text-right text-sm font-semibold text-accent-dark uppercase tracking-wider;
   }
   
   .table-cell {
@@ -96,18 +97,18 @@ body {
   }
   
   .progress-bar {
-    @apply w-full bg-primary-100 rounded-full h-3 overflow-hidden shadow-inner;
+    @apply w-full bg-accent-light/30 rounded-full h-3 overflow-hidden shadow-inner;
   }
   
   .progress-fill {
-    @apply h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-500 ease-out;
+    @apply h-full bg-gradient-to-r from-accent-dark to-primary-600 rounded-full transition-all duration-500 ease-out;
   }
   
   .glass-effect {
-    @apply bg-white/20 backdrop-blur-md border border-white/30 shadow-soft;
+    @apply bg-white/25 backdrop-blur-md border border-accent-light/40 shadow-soft;
   }
   
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent font-bold;
+    @apply bg-gradient-to-r from-accent-dark to-primary-800 bg-clip-text text-transparent font-bold;
   }
 }
