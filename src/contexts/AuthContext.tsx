@@ -39,6 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // تحميل ملف المستخدم الشخصي
   const loadUserProfile = async (userId: string) => {
     console.log('تحميل الملف الشخصي للمستخدم:', userId);
+    setIsLoading(true);
     
     try {
       const { data: profile, error } = await supabase
@@ -70,13 +71,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!insertError) {
               console.log('تم إنشاء الملف الشخصي بنجاح');
               // إعادة تحميل الملف الشخصي
-              return loadUserProfile(userId);
+              return await loadUserProfile(userId);
             }
           }
         }
         
         toast.error('فشل في تحميل بيانات المستخدم');
-        setIsLoading(false);
         return;
       }
 
@@ -99,6 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toast.error('حدث خطأ في تحميل بيانات المستخدم');
     } finally {
       setIsLoading(false);
+      console.log('تم إنهاء تحميل الملف الشخصي');
     }
   };
 
@@ -133,7 +134,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // تسجيل الدخول
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('بدء عملية تسجيل الدخول:', email);
-    setIsLoading(true);
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -162,8 +162,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Login error:', error);
       toast.error('حدث خطأ أثناء تسجيل الدخول');
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
