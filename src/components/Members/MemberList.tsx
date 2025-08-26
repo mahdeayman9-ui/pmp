@@ -37,8 +37,8 @@ export const MemberList: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Members</h2>
-          <p className="text-gray-600">View and manage all team members across projects</p>
+          <h2 className="text-2xl font-bold text-gray-900">الأعضاء</h2>
+          <p className="text-gray-600">عرض وإدارة جميع أعضاء الفرق عبر المشاريع</p>
         </div>
         <div className="flex items-center space-x-3">
           <select
@@ -46,7 +46,7 @@ export const MemberList: React.FC = () => {
             onChange={(e) => setSelectedTeamId(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="">Select team to add member</option>
+            <option value="">اختر فريق لإضافة عضو</option>
             {teams.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
@@ -56,10 +56,10 @@ export const MemberList: React.FC = () => {
           <button
             onClick={() => selectedTeamId && handleAddMember(selectedTeamId)}
             disabled={!selectedTeamId}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary px-4 py-2 flex items-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-5 w-5" />
-            <span>Add Member</span>
+            <span>إضافة عضو</span>
           </button>
         </div>
       </div>
@@ -69,7 +69,7 @@ export const MemberList: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Members</p>
+              <p className="text-sm text-gray-600">إجمالي الأعضاء</p>
               <p className="text-3xl font-bold text-gray-900">{allMembers.length}</p>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -81,7 +81,7 @@ export const MemberList: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Team Leads</p>
+              <p className="text-sm text-gray-600">قادة الفرق</p>
               <p className="text-3xl font-bold text-gray-900">
                 {allMembers.filter(m => m.role === 'lead').length}
               </p>
@@ -95,7 +95,7 @@ export const MemberList: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Teams</p>
+              <p className="text-sm text-gray-600">الفرق النشطة</p>
               <p className="text-3xl font-bold text-gray-900">{teams.length}</p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
@@ -126,7 +126,7 @@ export const MemberList: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(member.role)}`}>
                         <RoleIcon className="h-3 w-3 mr-1" />
-                        {member.role}
+                        {member.role === 'lead' ? 'قائد الفريق' : 'عضو'}
                       </span>
                     </div>
                   </div>
@@ -146,13 +146,13 @@ export const MemberList: React.FC = () => {
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>Joined {format(member.joinedAt, 'MMM dd, yyyy')}</span>
+                  <span>انضم {format(member.joinedAt, 'dd MMM yyyy', { locale: ar })}</span>
                 </div>
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <button className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
-                  View Profile
+                <button className="btn-secondary w-full py-2 px-4 text-sm font-medium">
+                  عرض الملف الشخصي
                 </button>
               </div>
             </div>
@@ -164,9 +164,9 @@ export const MemberList: React.FC = () => {
       {allMembers.length === 0 && (
         <div className="text-center py-12">
           <Users className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No members found</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">لا يوجد أعضاء</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Get started by adding members to your teams.
+            ابدأ بإضافة أعضاء إلى فرقك.
           </p>
         </div>
       )}

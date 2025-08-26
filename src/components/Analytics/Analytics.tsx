@@ -42,8 +42,8 @@ export const Analytics: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-        <p className="text-gray-600">Insights and metrics for your projects and teams</p>
+        <h2 className="text-2xl font-bold text-gray-900">التحليلات</h2>
+        <p className="text-gray-600">رؤى ومقاييس لمشاريعك وفرقك</p>
       </div>
 
       {/* Key Metrics Cards */}
@@ -51,7 +51,7 @@ export const Analytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Projects</p>
+              <p className="text-sm text-gray-600">إجمالي المشاريع</p>
               <p className="text-3xl font-bold text-gray-900">{projects.length}</p>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -63,9 +63,9 @@ export const Analytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Average Progress</p>
+              <p className="text-sm text-gray-600">متوسط التقدم</p>
               <p className="text-3xl font-bold text-gray-900">
-                {Math.round(projects.reduce((acc, p) => acc + p.progress, 0) / projects.length)}%
+                {projects.length > 0 ? Math.round(projects.reduce((acc, p) => acc + p.progress, 0) / projects.length) : 0}%
               </p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
@@ -77,7 +77,7 @@ export const Analytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Tasks</p>
+              <p className="text-sm text-gray-600">إجمالي المهام</p>
               <p className="text-3xl font-bold text-gray-900">{tasks.length}</p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
@@ -89,7 +89,7 @@ export const Analytics: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Team Members</p>
+              <p className="text-sm text-gray-600">أعضاء الفرق</p>
               <p className="text-3xl font-bold text-gray-900">
                 {teams.reduce((acc, team) => acc + team.members.length, 0)}
               </p>
@@ -105,7 +105,7 @@ export const Analytics: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Project Status Distribution */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Status Distribution</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">توزيع حالة المشاريع</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -131,7 +131,7 @@ export const Analytics: React.FC = () => {
 
         {/* Team Productivity */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Productivity</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">إنتاجية الفرق</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={teamProductivityData}>
@@ -148,7 +148,7 @@ export const Analytics: React.FC = () => {
 
       {/* Task Completion Trend */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Completion Trend</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">اتجاه إكمال المهام</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={taskTrendData}>
@@ -164,11 +164,11 @@ export const Analytics: React.FC = () => {
         <div className="flex justify-center mt-4 space-x-6">
           <div className="flex items-center">
             <div className="w-4 h-4 bg-green-500 rounded mr-2" />
-            <span className="text-sm text-gray-600">Tasks Completed</span>
+            <span className="text-sm text-gray-600">المهام المكتملة</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-blue-500 rounded mr-2" />
-            <span className="text-sm text-gray-600">Tasks Created</span>
+            <span className="text-sm text-gray-600">المهام المُنشأة</span>
           </div>
         </div>
       </div>

@@ -1003,9 +1003,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const enhancedTasks = useMemo(() => {
     return tasks.map(task => ({
+      const totalAchieved = (task.dailyAchievements || []).reduce((sum, achievement) => sum + (achievement.value || 0), 0);
+      
       ...task,
       progress: calculateTaskProgress(task),
-      riskLevel: getTaskRiskLevel(task),
+        isOverdue: isAfter(new Date(), new Date(task.endDate)) && task.status !== 'completed',
+        totalAchieved
       isOverdue: isAfter(new Date(), new Date(task.endDate)) && task.status !== 'completed'
     }));
   }, [tasks]);

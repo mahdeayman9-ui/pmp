@@ -63,6 +63,8 @@ export interface Task {
   priority: 'low' | 'medium' | 'high';
   assignedToTeamId: string | null;
   assignedToTeamName?: string;
+  assignedToUserId?: string;
+  assignedToName?: string;
   startDate: Date;
   endDate: Date;
   progress: number;
@@ -73,6 +75,7 @@ export interface Task {
   // حقول متتبع المهام المحسنة
   dailyAchievements?: DailyAchievement[];
   totalTarget?: number;
+  totalAchieved?: number;
   actualStartDate?: Date;
   actualEndDate?: Date;
   plannedEffortHours?: number;

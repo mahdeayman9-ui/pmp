@@ -54,7 +54,7 @@ export const TeamList: React.FC = () => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 space-x-reverse"
+          className="btn-primary px-4 py-2 flex items-center space-x-2 space-x-reverse"
         >
           <Plus className="h-5 w-5" />
           <span>فريق جديد</span>
@@ -65,15 +65,15 @@ export const TeamList: React.FC = () => {
         {teams.map((team) => (
           <div
             key={team.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            className="card-professional p-6"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{team.name}</h3>
-                <p className="text-gray-600 text-sm mt-1">{team.description}</p>
+                <h3 className="text-lg font-semibold gradient-text">{team.name}</h3>
+                <p className="text-accent-dark/80 text-sm mt-1">{team.description}</p>
               </div>
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <Users className="h-5 w-5 text-blue-600" />
+              <div className="bg-accent-light/30 p-2 rounded-lg">
+                <Users className="h-5 w-5 text-accent-dark" />
               </div>
             </div>
 
@@ -116,7 +116,7 @@ export const TeamList: React.FC = () => {
 
               <button 
                 onClick={() => handleAddMember(team.id)}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+                className="btn-secondary w-full py-2 px-4 flex items-center justify-center space-x-2 space-x-reverse"
               >
                 <UserPlus className="h-4 w-4" />
                 <span>إضافة عضو</span>
@@ -124,7 +124,7 @@ export const TeamList: React.FC = () => {
               
               <button 
                 onClick={() => handleViewCredentials(team.id)}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 space-x-reverse mt-2"
+                className="btn-success w-full py-2 px-4 flex items-center justify-center space-x-2 space-x-reverse mt-2"
               >
                 <Key className="h-4 w-4" />
                 <span>عرض بيانات الدخول</span>

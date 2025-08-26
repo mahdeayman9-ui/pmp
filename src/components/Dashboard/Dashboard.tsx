@@ -67,8 +67,8 @@ export const Dashboard: React.FC = () => {
 
       {/* الرسوم البيانية */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ProjectProgress projects={[]} />
-        <TaskDistribution tasks={[]} />
+        <ProjectProgress projects={projects} />
+        <TaskDistribution tasks={tasks} />
       </div>
 
       {/* الأنشطة الحديثة والمهام المتأخرة */}

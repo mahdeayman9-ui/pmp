@@ -672,6 +672,8 @@ function TaskCard({
   deleteTask,
   setModal,
 }) {
+  const { projects } = useData();
+  
   const datesInRange = useMemo(() => {
     return getDatesInRange(task.startDate, task.endDate);
   }, [task.startDate, task.endDate]);
@@ -786,16 +788,16 @@ function TaskCard({
             <div className="border-t border-gray-200 pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                 <div>
-                  <p className="font-semibold text-gray-900">Dates:</p>
-                  <p>Planned: {formatDate(task.startDate)} - {formatDate(task.endDate)}</p>
-                  <p>Actual: {formatDate(task.actualStartDate)} - {formatDate(task.actualEndDate)}</p>
+                  <p className="font-semibold text-gray-900">التواريخ:</p>
+                  <p>المخطط: {formatDate(task.startDate)} - {formatDate(task.endDate)}</p>
+                  <p>الفعلي: {formatDate(task.actualStartDate)} - {formatDate(task.actualEndDate)}</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Progress:</p>
+                  <p className="font-semibold text-gray-900">التقدم:</p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <p className="text-gray-900 font-bold">{tasksWithDerivedData.progressPercent || 0}%</p>
-                      <p className="text-xs text-gray-500">of {tasksWithDerivedData.totalTarget || 'N/A'}</p>
+                      <p className="text-xs text-gray-500">من {tasksWithDerivedData.totalTarget || 'غير محدد'}</p>
                     </div>
                     <div className="flex-grow bg-gray-200 rounded-full h-2.5">
                       <div
@@ -806,21 +808,21 @@ function TaskCard({
                   </div>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Details:</p>
-                  <p>Priority: {task.priority}</p>
-                  <p>Status: {task.status}</p>
+                  <p className="font-semibold text-gray-900">التفاصيل:</p>
+                  <p>الأولوية: {task.priority}</p>
+                  <p>الحالة: {task.status}</p>
                 </div>
               </div>
 
               {/* Daily Achievement Grid */}
               <div className="mt-4 border-t border-gray-200 pt-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Daily Achievements:</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">الإنجازات اليومية:</h4>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="p-2 rounded-full bg-gray-200 text-gray-600">
                     {icons.target}
                   </span>
                   <span className="text-lg font-bold text-gray-900">
-                    {tasksWithDerivedData.totalAchieved || 0} / {tasksWithDerivedData.totalTarget || 'N/A'}
+                    {tasksWithDerivedData.totalAchieved || 0} / {tasksWithDerivedData.totalTarget || 'غير محدد'}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-60 overflow-y-auto pr-2">
@@ -843,15 +845,15 @@ function TaskCard({
                   disabled={!!task.actualStartDate}
                   className="flex-1 py-2 px-4 rounded-lg bg-blue-600 text-white font-bold disabled:bg-gray-300 disabled:text-gray-500"
                 >
-                  Start Task
+                  بدء المهمة
                 </button>
                 <button
                   onClick={handleEndTask}
                   disabled={!task.actualStartDate || !!task.actualEndDate}
-                  title={!task.actualStartDate ? "Start the task first" : task.actualEndDate ? "Task already ended" : "End task and record actual end date"}
+                  title={!task.actualStartDate ? "ابدأ المهمة أولاً" : task.actualEndDate ? "المهمة انتهت بالفعل" : "إنهاء المهمة وتسجيل تاريخ الانتهاء الفعلي"}
                   className="flex-1 py-2 px-4 rounded-lg bg-red-600 text-white font-bold disabled:bg-gray-300 disabled:text-gray-500"
                 >
-                  End Task
+                  إنهاء المهمة
                 </button>
                 <button
                   onClick={() => deleteTask(task)}

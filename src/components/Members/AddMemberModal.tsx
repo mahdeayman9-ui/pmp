@@ -54,7 +54,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            Add Member to {team.name}
+            إضافة عضو إلى {team.name}
           </h2>
           <button
             onClick={onClose}
@@ -67,35 +67,35 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
+              الاسم الكامل
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter member's full name"
+              placeholder="أدخل الاسم الكامل للعضو"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
+              البريد الإلكتروني
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter member's email"
+              placeholder="أدخل البريد الإلكتروني للعضو"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
+              الدور
             </label>
             <select
               value={formData.role}
@@ -103,14 +103,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="member">Member</option>
-              <option value="lead">Team Lead</option>
+              <option value="member">عضو</option>
+              <option value="lead">قائد الفريق</option>
             </select>
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              <strong>Team:</strong> {team.name}
+              <strong>الفريق:</strong> {team.name}
             </p>
             <p className="text-sm text-blue-600 mt-1">
               {team.description}
@@ -123,13 +123,13 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
               onClick={onClose}
               className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              Cancel
+              إلغاء
             </button>
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Add Member
+              إضافة العضو
             </button>
           </div>
         </form>
