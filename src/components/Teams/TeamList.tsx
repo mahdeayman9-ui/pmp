@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Plus, Users, UserPlus } from 'lucide-react';
+import { Plus, Users, UserPlus, Mail, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { TeamModal } from './TeamModal';
+import { AddMemberModal } from '../Members/AddMemberModal';
 
 export const TeamList: React.FC = () => {
   const { teams } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+
+  const handleAddMember = (teamId: string) => {
+    setSelectedTeamId(teamId);
+    setIsAddMemberModalOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -79,6 +87,13 @@ export const TeamList: React.FC = () => {
                 <UserPlus className="h-4 w-4" />
                 <span>Add Member</span>
               </button>
+              <button 
+                onClick={() => handleAddMember(team.id)}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Add Member</span>
+              </button>
             </div>
           </div>
         ))}
@@ -88,6 +103,15 @@ export const TeamList: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+     <AddMemberModal 
+       isOpen={isAddMemberModalOpen}
+       onClose={() => {
+         setIsAddMemberModalOpen(false);
+         setSelectedTeamId('');
+       }}
+       teamId={selectedTeamId}
+     />
     </div>
   );
 };

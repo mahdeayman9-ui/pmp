@@ -6,6 +6,7 @@ const pageNames: { [key: string]: string } = {
   '/': 'Dashboard',
   '/projects': 'Projects',
   '/teams': 'Teams',
+  '/members': 'Members',
   '/tasks': 'Tasks',
   '/gantt': 'Gantt Chart',
   '/analytics': 'Analytics',

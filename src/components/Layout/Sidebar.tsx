@@ -7,6 +7,7 @@ import {
   CheckSquare, 
   BarChart3, 
   Calendar,
+  UserCheck,
   LogOut
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +16,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Teams', href: '/teams', icon: Users },
+  { name: 'Members', href: '/members', icon: UserCheck },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Gantt Chart', href: '/gantt', icon: Calendar },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },

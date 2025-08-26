@@ -8,6 +8,7 @@ import { Login } from './components/Auth/Login';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { ProjectList } from './components/Projects/ProjectList';
 import { TeamList } from './components/Teams/TeamList';
+import { MemberList } from './components/Members/MemberList';
 import { TaskList } from './components/Tasks/TaskList';
 import { GanttChart } from './components/Gantt/GanttChart';
 import { Analytics } from './components/Analytics/Analytics';
@@ -31,6 +32,7 @@ function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="projects" element={<ProjectList />} />
                 <Route path="teams" element={<TeamList />} />
+                <Route path="members" element={<MemberList />} />
                 <Route path="tasks" element={<TaskList />} />
                 <Route path="gantt" element={<GanttChart />} />
                 <Route path="analytics" element={<Analytics />} />
