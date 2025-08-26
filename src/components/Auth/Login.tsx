@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogIn, Mail, Lock } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { user, login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { user, login } = useAuth();
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -16,10 +18,25 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     
-    const success = await login(email, password);
-    if (!success) {
-      setError('بيانات الدخول غير صحيحة. تأكد من صحة البريد الإلكتروني وكلمة المرور');
+    try {
+      console.log('محاولة تسجيل الدخول:', { email, password: '***' });
+      const success = await login(email, password);
+      console.log('نتيجة تسجيل الدخول:', success);
+      
+      if (!success) {
+        setError('بيانات الدخول غير صحيحة. تأكد من صحة البريد الإلكتروني وكلمة المرور');
+        toast.error('فشل في تسجيل الدخول');
+      } else {
+        toast.success('تم تسجيل الدخول بنجاح');
+      }
+    } catch (error) {
+      console.error('خطأ في تسجيل الدخول:', error);
+      setError('حدث خطأ أثناء تسجيل الدخول');
+      toast.error('حدث خطأ أثناء تسجيل الدخول');
+    } finally {
+      setIsLoading(false);
     }
   };
 

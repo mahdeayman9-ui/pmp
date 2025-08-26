@@ -38,28 +38,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // تحميل ملف المستخدم الشخصي
   const loadUserProfile = async (userId: string) => {
+    console.log('تحميل الملف الشخصي للمستخدم:', userId);
+    
     try {
-      setIsLoading(true);
-      
       // Add timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
+        console.log('انتهت مهلة تحميل الملف الشخصي');
         setIsLoading(false);
       }, 10000); // 10 second timeout
+      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
+      clearTimeout(timeoutId);
+      console.log('نتيجة تحميل الملف الشخصي:', { profile: profile?.email, error: error?.message });
+
       if (error) {
-        clearTimeout(timeoutId);
         console.error('Error loading profile:', error);
-        setIsLoading(false);
-        setUser(null);
+        
+        // إذا لم يوجد ملف شخصي، أنشئ واحد
+        if (error.code === 'PGRST116') {
+          console.log('لم يوجد ملف شخصي، جاري إنشاء واحد...');
+          const { data: authUser } = await supabase.auth.getUser();
+          
+          if (authUser.user) {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: authUser.user.id,
+                email: authUser.user.email || '',
+                name: authUser.user.email?.split('@')[0] || 'مستخدم',
+                role: 'member'
+              });
+            
+            if (!insertError) {
+              console.log('تم إنشاء الملف الشخصي بنجاح');
+              // إعادة تحميل الملف الشخصي
+              return loadUserProfile(userId);
+            }
+          }
+        }
+        
+        toast.error('فشل في تحميل بيانات المستخدم');
         return;
       }
 
       if (profile) {
+        console.log('تم تحميل الملف الشخصي:', profile.name);
         const userData: User = {
           id: profile.id,
           email: profile.email,
@@ -69,11 +97,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           teamId: profile.team_id || undefined,
         };
         setUser(userData);
+        console.log('تم تعيين بيانات المستخدم بنجاح');
       }
-      
-      clearTimeout(timeoutId);
     } catch (error) {
       console.error('Error loading user profile:', error);
+      toast.error('حدث خطأ في تحميل بيانات المستخدم');
     } finally {
       setIsLoading(false);
     }
@@ -109,37 +137,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // تسجيل الدخول
   const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
+    console.log('بدء عملية تسجيل الدخول:', email);
     
     try {
+      setIsLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('استجابة Supabase:', { data: data?.user?.id, error: error?.message });
+
       if (error) {
+        console.error('خطأ في المصادقة:', error);
         if (error.message.includes('Invalid login credentials')) {
           toast.error('بيانات الدخول غير صحيحة. تأكد من البريد الإلكتروني وكلمة المرور');
         } else {
           toast.error(handleSupabaseError(error));
         }
-        setIsLoading(false);
         return false;
       }
 
       if (data.user) {
+        console.log('تم العثور على المستخدم، جاري تحميل الملف الشخصي...');
         await loadUserProfile(data.user.id);
-        toast.success('تم تسجيل الدخول بنجاح');
+        console.log('تم تحميل الملف الشخصي بنجاح');
         return true;
       }
 
-      setIsLoading(false);
+      console.log('لم يتم العثور على بيانات المستخدم');
       return false;
     } catch (error) {
       console.error('Login error:', error);
       toast.error('حدث خطأ أثناء تسجيل الدخول');
-      setIsLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
