@@ -15,6 +15,7 @@ interface DataContextType {
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  getAllMembers: () => Array<{ id: string; name: string; email: string; teamId: string; teamName: string; role: string }>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -27,7 +28,8 @@ const mockTeams: Team[] = [
     description: 'Frontend and backend developers',
     members: [
       { id: '1', userId: '1', name: 'John Admin', email: 'admin@demo.com', role: 'lead', joinedAt: subDays(new Date(), 30) },
-      { id: '2', userId: '3', name: 'Mike Member', email: 'member@demo.com', role: 'member', joinedAt: subDays(new Date(), 15) }
+      { id: '2', userId: '3', name: 'Mike Member', email: 'member@demo.com', role: 'member', joinedAt: subDays(new Date(), 15) },
+      { id: '4', userId: '4', name: 'Alice Developer', email: 'alice@demo.com', role: 'member', joinedAt: subDays(new Date(), 20) }
     ],
     createdAt: subDays(new Date(), 30)
   },
@@ -36,7 +38,8 @@ const mockTeams: Team[] = [
     name: 'Design Team',
     description: 'UI/UX designers and visual artists',
     members: [
-      { id: '3', userId: '2', name: 'Sarah Manager', email: 'manager@demo.com', role: 'lead', joinedAt: subDays(new Date(), 25) }
+      { id: '3', userId: '2', name: 'Sarah Manager', email: 'manager@demo.com', role: 'lead', joinedAt: subDays(new Date(), 25) },
+      { id: '5', userId: '5', name: 'Bob Designer', email: 'bob@demo.com', role: 'member', joinedAt: subDays(new Date(), 12) }
     ],
     createdAt: subDays(new Date(), 25)
   }
@@ -109,6 +112,17 @@ const mockProjects: Project[] = [
         progress: 80,
         tasks: [],
         projectId: '2'
+      },
+      {
+        id: '5',
+        name: 'Design Phase',
+        description: 'Create new UI/UX designs',
+        startDate: new Date(),
+        endDate: addDays(new Date(), 15),
+        status: 'not-started',
+        progress: 0,
+        tasks: [],
+        projectId: '2'
       }
     ],
     createdAt: subDays(new Date(), 10)
@@ -122,11 +136,13 @@ const mockTasks: Task[] = [
     description: 'Implement login, logout, and user management',
     status: 'completed',
     priority: 'high',
-    assignedTo: ['1'],
+    assignedToUserId: '1',
+    assignedToName: 'John Admin',
     startDate: subDays(new Date(), 15),
     endDate: subDays(new Date(), 5),
     progress: 100,
     phaseId: '2',
+    projectId: '1',
     createdAt: subDays(new Date(), 15)
   },
   {
@@ -135,11 +151,13 @@ const mockTasks: Task[] = [
     description: 'Create responsive product listing and detail pages',
     status: 'in-progress',
     priority: 'high',
-    assignedTo: ['3'],
+    assignedToUserId: '4',
+    assignedToName: 'Alice Developer',
     startDate: subDays(new Date(), 8),
     endDate: addDays(new Date(), 5),
     progress: 60,
     phaseId: '2',
+    projectId: '1',
     createdAt: subDays(new Date(), 8)
   },
   {
@@ -148,12 +166,44 @@ const mockTasks: Task[] = [
     description: 'Add to cart functionality and cart management',
     status: 'todo',
     priority: 'medium',
-    assignedTo: ['1', '3'],
+    assignedToUserId: '3',
+    assignedToName: 'Mike Member',
     startDate: new Date(),
     endDate: addDays(new Date(), 10),
     progress: 0,
     phaseId: '2',
+    projectId: '1',
     createdAt: subDays(new Date(), 3)
+  },
+  {
+    id: '4',
+    title: 'User research interviews',
+    description: 'Conduct interviews with target users',
+    status: 'completed',
+    priority: 'high',
+    assignedToUserId: '2',
+    assignedToName: 'Sarah Manager',
+    startDate: subDays(new Date(), 10),
+    endDate: subDays(new Date(), 3),
+    progress: 100,
+    phaseId: '4',
+    projectId: '2',
+    createdAt: subDays(new Date(), 10)
+  },
+  {
+    id: '5',
+    title: 'Competitor analysis',
+    description: 'Analyze competitor mobile apps and features',
+    status: 'in-progress',
+    priority: 'medium',
+    assignedToUserId: '5',
+    assignedToName: 'Bob Designer',
+    startDate: subDays(new Date(), 5),
+    endDate: addDays(new Date(), 2),
+    progress: 75,
+    phaseId: '4',
+    projectId: '2',
+    createdAt: subDays(new Date(), 5)
   }
 ];
 
@@ -161,6 +211,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [teams, setTeams] = useState<Team[]>(mockTeams);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
+
+  const getAllMembers = () => {
+    return teams.flatMap(team => 
+      team.members.map(member => ({
+        id: member.userId,
+        name: member.name,
+        email: member.email,
+        teamId: team.id,
+        teamName: team.name,
+        role: member.role
+      }))
+    );
+  };
 
   const addProject = (project: Omit<Project, 'id' | 'createdAt'>) => {
     const newProject: Project = {
@@ -177,6 +240,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteProject = (id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
+    // Also delete related tasks
+    setTasks(prev => prev.filter(t => t.projectId !== id));
   };
 
   const addTeam = (team: Omit<Team, 'id' | 'createdAt'>) => {
@@ -194,6 +259,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteTeam = (id: string) => {
     setTeams(prev => prev.filter(t => t.id !== id));
+    // Also delete related projects and tasks
+    const projectsToDelete = projects.filter(p => p.teamId === id).map(p => p.id);
+    setProjects(prev => prev.filter(p => p.teamId !== id));
+    setTasks(prev => prev.filter(t => !projectsToDelete.includes(t.projectId)));
   };
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
@@ -226,7 +295,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       deleteTeam,
       addTask,
       updateTask,
-      deleteTask
+      deleteTask,
+      getAllMembers
     }}>
       {children}
     </DataContext.Provider>

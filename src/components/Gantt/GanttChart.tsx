@@ -3,10 +3,24 @@ import { useData } from '../../contexts/DataContext';
 import { format, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 export const GanttChart: React.FC = () => {
-  const { projects } = useData();
+  const { projects, teams } = useData();
 
   // Calculate the overall timeline
   const allDates = projects.flatMap(p => [p.startDate, p.endDate]);
+  if (allDates.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Gantt Chart</h2>
+          <p className="text-gray-600">Project timeline and progress visualization</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+          <p className="text-gray-500">No projects available to display in Gantt chart</p>
+        </div>
+      </div>
+    );
+  }
+
   const minDate = startOfMonth(new Date(Math.min(...allDates.map(d => d.getTime()))));
   const maxDate = endOfMonth(new Date(Math.max(...allDates.map(d => d.getTime()))));
   
@@ -31,9 +45,16 @@ export const GanttChart: React.FC = () => {
         return 'bg-blue-500';
       case 'on-hold':
         return 'bg-yellow-500';
+      case 'planning':
+        return 'bg-purple-500';
       default:
         return 'bg-gray-500';
     }
+  };
+
+  const getTeamName = (teamId: string) => {
+    const team = teams.find(t => t.id === teamId);
+    return team?.name || 'Unknown Team';
   };
 
   return (
@@ -47,8 +68,8 @@ export const GanttChart: React.FC = () => {
         {/* Timeline Header */}
         <div className="border-b border-gray-200 bg-gray-50">
           <div className="flex">
-            <div className="w-64 px-4 py-3 font-medium text-gray-900 border-r border-gray-200">
-              Project
+            <div className="w-80 px-4 py-3 font-medium text-gray-900 border-r border-gray-200">
+              Project Details
             </div>
             <div className="flex-1 relative">
               <div className="flex h-12">
@@ -70,10 +91,15 @@ export const GanttChart: React.FC = () => {
         <div className="divide-y divide-gray-200">
           {projects.map((project) => (
             <div key={project.id} className="flex">
-              <div className="w-64 px-4 py-4 border-r border-gray-200">
+              <div className="w-80 px-4 py-4 border-r border-gray-200">
                 <div>
                   <h3 className="font-medium text-gray-900">{project.name}</h3>
-                  <p className="text-sm text-gray-600">{project.progress}% complete</p>
+                  <p className="text-sm text-gray-600">{getTeamName(project.teamId)}</p>
+                  <p className="text-sm text-gray-500">{project.progress}% complete</p>
+                  <div className="flex items-center mt-1">
+                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${getStatusColor(project.status).replace('bg-', 'bg-')}`} />
+                    <span className="text-xs text-gray-500 capitalize">{project.status.replace('-', ' ')}</span>
+                  </div>
                 </div>
               </div>
               <div className="flex-1 relative py-4 px-2">
@@ -124,6 +150,10 @@ export const GanttChart: React.FC = () => {
           <div className="flex items-center">
             <div className="w-4 h-4 bg-gray-200 rounded mr-2" />
             <span className="text-sm text-gray-600">Total Duration</span>
+          </div>
+          <div className="flex items-center">
+            <div className="w-4 h-4 bg-purple-500 rounded mr-2" />
+            <span className="text-sm text-gray-600">Planning</span>
           </div>
           <div className="flex items-center">
             <div className="w-4 h-4 bg-blue-500 rounded mr-2" />

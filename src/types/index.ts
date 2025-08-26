@@ -53,11 +53,13 @@ export interface Task {
   description: string;
   status: 'todo' | 'in-progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
-  assignedTo: string[];
+  assignedToUserId: string | null; // Changed: now assigns to individual user
+  assignedToName?: string; // Helper field for display
   startDate: Date;
   endDate: Date;
   progress: number;
   phaseId: string;
+  projectId: string; // Added: direct reference to project
   createdAt: Date;
 }
 

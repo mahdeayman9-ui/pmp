@@ -39,15 +39,12 @@ export const TaskList: React.FC = () => {
     }
   };
 
-  const getProjectName = (phaseId: string) => {
-    for (const project of projects) {
-      for (const phase of project.phases) {
-        if (phase.id === phaseId) {
-          return `${project.name} - ${phase.name}`;
-        }
-      }
-    }
-    return 'Unknown Project';
+  const getProjectAndPhase = (projectId: string, phaseId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return 'Unknown Project';
+    
+    const phase = project.phases.find(ph => ph.id === phaseId);
+    return `${project.name} - ${phase?.name || 'Unknown Phase'}`;
   };
 
   return (
@@ -104,7 +101,7 @@ export const TaskList: React.FC = () => {
                 </div>
                 <p className="text-gray-600 mb-3">{task.description}</p>
                 <div className="text-sm text-gray-500">
-                  <span>{getProjectName(task.phaseId)}</span>
+                  <span>{getProjectAndPhase(task.projectId, task.phaseId)}</span>
                 </div>
               </div>
             </div>
@@ -119,7 +116,7 @@ export const TaskList: React.FC = () => {
               
               <div className="flex items-center text-sm text-gray-500">
                 <User className="h-4 w-4 mr-2" />
-                <span>{task.assignedTo.length} assignee(s)</span>
+                <span>{task.assignedToName || 'Unassigned'}</span>
               </div>
 
               <div className="flex items-center justify-between">

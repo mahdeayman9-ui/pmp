@@ -9,39 +9,50 @@ interface TaskModalProps {
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
-  const { projects, addTask } = useData();
+  const { projects, addTask, getAllMembers } = useData();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     phaseId: '',
+    projectId: '',
+    assignedToUserId: '',
     priority: 'medium',
     startDate: new Date().toISOString().split('T')[0],
     endDate: addDays(new Date(), 7).toISOString().split('T')[0],
   });
 
-  // Flatten phases from all projects for selection
-  const availablePhases = projects.flatMap(project => 
-    project.phases.map(phase => ({
-      id: phase.id,
-      name: `${project.name} - ${phase.name}`,
-      projectName: project.name,
-      phaseName: phase.name
-    }))
-  );
+  const allMembers = getAllMembers();
+
+  // Get available phases based on selected project
+  const availablePhases = formData.projectId 
+    ? projects.find(p => p.id === formData.projectId)?.phases || []
+    : [];
+
+  const handleProjectChange = (projectId: string) => {
+    setFormData({
+      ...formData,
+      projectId,
+      phaseId: '' // Reset phase when project changes
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const assignedMember = allMembers.find(m => m.id === formData.assignedToUserId);
     
     const newTask = {
       title: formData.title,
       description: formData.description,
       status: 'todo' as const,
       priority: formData.priority as 'low' | 'medium' | 'high',
-      assignedTo: [],
+      assignedToUserId: formData.assignedToUserId || null,
+      assignedToName: assignedMember?.name,
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
       progress: 0,
       phaseId: formData.phaseId,
+      projectId: formData.projectId,
     };
 
     addTask(newTask);
@@ -49,6 +60,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
       title: '',
       description: '',
       phaseId: '',
+      projectId: '',
+      assignedToUserId: '',
       priority: 'medium',
       startDate: new Date().toISOString().split('T')[0],
       endDate: addDays(new Date(), 7).toISOString().split('T')[0],
@@ -60,7 +73,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">New Task</h2>
           <button
@@ -100,6 +113,25 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Project
+            </label>
+            <select
+              value={formData.projectId}
+              onChange={(e) => handleProjectChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select a project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Project Phase
             </label>
             <select
@@ -107,11 +139,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
               onChange={(e) => setFormData({ ...formData, phaseId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              disabled={!formData.projectId}
             >
               <option value="">Select a project phase</option>
               {availablePhases.map((phase) => (
                 <option key={phase.id} value={phase.id}>
                   {phase.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Assign To
+            </label>
+            <select
+              value={formData.assignedToUserId}
+              onChange={(e) => setFormData({ ...formData, assignedToUserId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Unassigned</option>
+              {allMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.teamName})
                 </option>
               ))}
             </select>
