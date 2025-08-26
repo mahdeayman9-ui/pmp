@@ -24,6 +24,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
   }, [isLoading]);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('ProtectedRoute - User:', user ? 'موجود' : 'غير موجود');
+    console.log('ProtectedRoute - Loading:', isLoading);
+  }, [user, isLoading]);
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -47,8 +52,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (!user) {
+    console.log('ProtectedRoute - توجيه إلى صفحة تسجيل الدخول');
     return <Navigate to="/login" replace />;
   }
 
+  console.log('ProtectedRoute - عرض المحتوى المحمي');
   return <>{children}</>;
 };

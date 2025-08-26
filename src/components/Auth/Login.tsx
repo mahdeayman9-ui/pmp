@@ -29,7 +29,10 @@ export const Login: React.FC = () => {
         setError('بيانات الدخول غير صحيحة. تأكد من صحة البريد الإلكتروني وكلمة المرور');
         toast.error('فشل في تسجيل الدخول');
       } else {
+        console.log('تم تسجيل الدخول بنجاح، سيتم التوجه للصفحة الرئيسية');
         toast.success('تم تسجيل الدخول بنجاح');
+        // Force navigation after successful login
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('خطأ في تسجيل الدخول:', error);

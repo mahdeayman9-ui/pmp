@@ -163,6 +163,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log('تم العثور على المستخدم، جاري تحميل الملف الشخصي...');
         await loadUserProfile(data.user.id);
         console.log('تم تحميل الملف الشخصي بنجاح');
+        
+        // Ensure user state is set before returning success
+        const maxWaitTime = 3000; // 3 seconds
+        const startTime = Date.now();
+        
+        while (!user && (Date.now() - startTime) < maxWaitTime) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.log('حالة المستخدم النهائية:', user ? 'تم التحميل' : 'لم يتم التحميل');
         return true;
       }
 
