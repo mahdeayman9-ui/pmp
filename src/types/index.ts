@@ -151,6 +151,7 @@ export interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   addUser?: (user: User) => void;
+  users?: User[];
 }
 
 // إضافة واجهات جديدة للتحليلات
