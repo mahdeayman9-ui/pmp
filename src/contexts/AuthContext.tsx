@@ -5,60 +5,6 @@ import toast from 'react-hot-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// إنشاء مستخدمين تجريبيين
-const createDemoUsers = async () => {
-  const demoUsers = [
-    { email: 'admin@demo.com', password: 'password123', name: 'مدير النظام', role: 'admin' },
-    { email: 'manager@demo.com', password: 'password123', name: 'مدير الفريق', role: 'manager' },
-    { email: 'member@demo.com', password: 'password123', name: 'عضو الفريق', role: 'member' }
-  ];
-
-  for (const user of demoUsers) {
-    try {
-      // التحقق من وجود المستخدم
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', user.email)
-        .single();
-
-      if (!existingProfile) {
-        // إنشاء المستخدم في المصادقة
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: user.email,
-          password: user.password,
-          email_confirm: true
-        });
-
-        if (authError) {
-          console.log(`Failed to create demo user ${user.email}:`, authError.message);
-          continue;
-        }
-
-        if (authData.user) {
-          // إنشاء الملف الشخصي
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authData.user.id,
-              email: user.email,
-              name: user.name,
-              role: user.role
-            });
-
-          if (profileError) {
-            console.log(`Failed to create profile for ${user.email}:`, profileError.message);
-          } else {
-            console.log(`Demo user created: ${user.email}`);
-          }
-        }
-      }
-    } catch (error) {
-      console.log(`Error creating demo user ${user.email}:`, error);
-    }
-  }
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,9 +12,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // تحميل المستخدم الحالي
   useEffect(() => {
-    // إنشاء المستخدمين التجريبيين عند بدء التطبيق
-    createDemoUsers();
-
     // التحقق من الجلسة الحالية
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
