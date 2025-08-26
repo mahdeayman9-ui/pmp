@@ -60,6 +60,13 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({
     }
   };
 
+  // حساب التقدم الفعلي بناءً على المهام
+  const { tasks } = useData();
+  const phaseTasks = tasks.filter(t => t.phaseId === phase.id);
+  const actualProgress = phaseTasks.length > 0 
+    ? Math.round(phaseTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / phaseTasks.length)
+    : phase.progress;
+
   return (
     <div className={`bg-white rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-shadow ${
       isOverdue() ? 'border-red-300 bg-red-50' : 'border-gray-200'
@@ -121,7 +128,7 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({
             <BarChart className="h-4 w-4 ml-2" />
             <span>التقدم</span>
           </div>
-          <span className="text-sm font-medium text-gray-900">{phase.progress}%</span>
+          <span className="text-sm font-medium text-gray-900">{actualProgress}%</span>
         </div>
       </div>
 
@@ -129,12 +136,12 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({
       <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
         <div
           className={`h-3 rounded-full transition-all duration-300 ${
-            phase.progress === 100 ? 'bg-green-500' : 
-            phase.progress >= 75 ? 'bg-blue-500' : 
-            phase.progress >= 50 ? 'bg-yellow-500' : 
+            actualProgress === 100 ? 'bg-green-500' : 
+            actualProgress >= 75 ? 'bg-blue-500' : 
+            actualProgress >= 50 ? 'bg-yellow-500' : 
             'bg-red-500'
           }`}
-          style={{ width: `${phase.progress}%` }}
+          style={{ width: `${actualProgress}%` }}
         />
       </div>
 

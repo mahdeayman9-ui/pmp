@@ -42,6 +42,7 @@ interface DataContextType {
   completeTask: (taskId: string) => void;
   calculateTaskProgress: (task: Task) => number;
   getTaskRiskLevel: (task: Task) => 'low' | 'medium' | 'high' | 'critical';
+  updatePhaseProgress: (phaseId: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -476,13 +477,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setActivities(prev => [newActivity, ...prev]);
         
-        return {
+        const updatedTask = {
           ...task,
           dailyAchievements: updatedAchievements,
           progress: newProgress,
           riskLevel: newRiskLevel,
           lastActivity: new Date()
         };
+        
+        // تحديث تقدم المرحلة
+        updatePhaseProgress(task.phaseId);
+        
+        return updatedTask;
       }
       return task;
     }));
@@ -503,12 +509,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setActivities(prev => [newActivity, ...prev]);
         
-        return {
+        const updatedTask = {
           ...task,
           status: 'in-progress' as const,
           actualStartDate: new Date(),
           lastActivity: new Date()
         };
+        
+        // تحديث تقدم المرحلة
+        updatePhaseProgress(task.phaseId);
+        
+        return updatedTask;
       }
       return task;
     }));
@@ -529,7 +540,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setActivities(prev => [newActivity, ...prev]);
         
-        return {
+        const updatedTask = {
           ...task,
           status: 'completed' as const,
           actualEndDate: new Date(),
@@ -537,6 +548,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           completionRate: 100,
           lastActivity: new Date()
         };
+        
+        // تحديث تقدم المرحلة
+        updatePhaseProgress(task.phaseId);
+        
+        return updatedTask;
       }
       return task;
     }));
@@ -625,6 +641,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updatedTask.riskLevel = getTaskRiskLevel(updatedTask);
         updatedTask.isOverdue = isAfter(new Date(), new Date(updatedTask.endDate)) && updatedTask.status !== 'completed';
         
+        // تحديث تقدم المرحلة المرتبطة
+        updatePhaseProgress(updatedTask.phaseId);
+        
         return updatedTask;
       }
       return t;
@@ -694,6 +713,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setPhases(prev => prev.filter(p => p.id !== id));
   };
 
+  // دالة لتحديث تقدم المرحلة بناءً على المهام المرتبطة بها
+  const updatePhaseProgress = (phaseId: string) => {
+    const phaseTasks = tasks.filter(t => t.phaseId === phaseId);
+    if (phaseTasks.length === 0) return;
+    
+    const totalProgress = phaseTasks.reduce((sum, task) => sum + calculateTaskProgress(task), 0);
+    const averageProgress = Math.round(totalProgress / phaseTasks.length);
+    
+    // تحديد حالة المرحلة بناءً على حالة المهام
+    const completedTasks = phaseTasks.filter(t => t.status === 'completed').length;
+    const inProgressTasks = phaseTasks.filter(t => t.status === 'in-progress').length;
+    
+    let phaseStatus: 'not-started' | 'in-progress' | 'completed' = 'not-started';
+    
+    if (completedTasks === phaseTasks.length) {
+      phaseStatus = 'completed';
+    } else if (inProgressTasks > 0 || completedTasks > 0) {
+      phaseStatus = 'in-progress';
+    }
+    
+    setPhases(prev => prev.map(phase => {
+      if (phase.id === phaseId) {
+        return {
+          ...phase,
+          progress: averageProgress,
+          status: phaseStatus
+        };
+      }
+      return phase;
+    }));
+  };
+
   // حساب الإحصائيات المحسنة
   const enhancedProjects = useMemo(() => {
     return projects.map(project => {
@@ -756,7 +807,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       startTask,
       completeTask,
       calculateTaskProgress,
-      getTaskRiskLevel
+      getTaskRiskLevel,
+      updatePhaseProgress
     }}>
       {children}
     </DataContext.Provider>
