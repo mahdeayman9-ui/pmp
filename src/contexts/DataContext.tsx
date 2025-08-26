@@ -621,6 +621,48 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       createdAt: new Date()
     };
     setPhases(prev => [...prev, newPhase]);
+    
+    // إنشاء مهمة تلقائية للمرحلة الجديدة
+    const project = projects.find(p => p.id === phase.projectId);
+    const autoTask: Task = {
+      id: (Date.now() + 1).toString(),
+      title: `مهمة ${phase.name}`,
+      description: `مهمة تلقائية للمرحلة: ${phase.description}`,
+      status: 'todo',
+      priority: 'medium',
+      assignedToTeamId: null,
+      assignedToTeamName: undefined,
+      startDate: phase.startDate,
+      endDate: phase.endDate,
+      progress: 0,
+      phaseId: newPhase.id,
+      projectId: phase.projectId,
+      createdAt: new Date(),
+      dailyAchievements: [],
+      totalTarget: phase.totalTarget || 100,
+      plannedEffortHours: 40,
+      actualEffortHours: 0,
+      riskLevel: 'low',
+      completionRate: 0,
+      timeSpent: 0,
+      isOverdue: false,
+      lastActivity: new Date()
+    };
+    
+    setTasks(prev => [...prev, autoTask]);
+    
+    // إضافة نشاط للمهمة المُنشأة تلقائياً
+    const newActivity: Activity = {
+      id: (Date.now() + 2).toString(),
+      type: 'task_created',
+      description: `تم إنشاء مهمة تلقائية "${autoTask.title}" للمرحلة "${phase.name}"`,
+      userId: 'system',
+      userName: 'النظام',
+      entityId: autoTask.id,
+      entityType: 'task',
+      timestamp: new Date()
+    };
+    setActivities(prev => [newActivity, ...prev]);
   };
 
   const updatePhase = (id: string, updates: Partial<Phase>) => {

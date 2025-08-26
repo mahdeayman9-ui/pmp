@@ -108,6 +108,9 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
             <p className="text-sm text-blue-600 mt-1">
               {project.description}
             </p>
+            <p className="text-xs text-blue-600 mt-2 font-medium">
+              💡 سيتم إنشاء مهمة تلقائية لهذه المرحلة في قائمة المهام ومتتبع المهام
+            </p>
           </div>
         )}
 
