@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { format, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
@@ -877,11 +878,17 @@ function TaskCard({
 
 export const TaskTracker: React.FC = () => {
   const { tasks, updateTask, deleteTask, logDailyAchievement, startTask, completeTask, calculateTaskProgress, getTaskRiskLevel, teams } = useData();
+  const { user } = useAuth();
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [modal, setModal] = useState({ visible: false, message: '', onConfirm: null });
 
   // Enhance tasks with tracking data
-  const enhancedTasks = tasks.map(task => ({
+  let userTasks = tasks;
+  if (user?.role === 'member' && user?.teamId) {
+    userTasks = tasks.filter(task => task.assignedToTeamId === user.teamId);
+  }
+
+  const enhancedTasks = userTasks.map(task => ({
     ...task,
     dailyAchievements: task.dailyAchievements || [],
     totalTarget: task.totalTarget || 100,

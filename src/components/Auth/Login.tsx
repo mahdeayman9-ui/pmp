@@ -90,6 +90,7 @@ export const Login: React.FC = () => {
             <li><strong>مدير:</strong> admin@demo.com / password</li>
             <li><strong>مدير فريق:</strong> manager@demo.com / password</li>
             <li><strong>عضو:</strong> member@demo.com / password</li>
+            <li><strong>قائد فريق:</strong> استخدم اسم المستخدم وكلمة المرور المولدة</li>
           </ul>
         </div>
       </div>

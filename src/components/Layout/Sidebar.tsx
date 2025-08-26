@@ -31,6 +31,11 @@ const navigation = [
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
 
+  // فلترة القائمة حسب دور المستخدم
+  const filteredNavigation = user?.role === 'member' && user?.teamId 
+    ? navigation.filter(item => ['المهام', 'متتبع المهام'].includes(item.name))
+    : navigation;
+
   return (
     <div className="w-64 bg-white shadow-lg h-full flex flex-col">
       <div className="p-6 border-b border-gray-200">
@@ -40,7 +45,7 @@ export const Sidebar: React.FC = () => {
       
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navigation.map((item) => (
+          {filteredNavigation.map((item) => (
             <li key={item.name}>
               <NavLink
                 to={item.href}

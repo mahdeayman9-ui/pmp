@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Filter, Calendar, User, AlertTriangle, Clock, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -7,12 +8,19 @@ import { TaskModal } from './TaskModal';
 
 export const TaskList: React.FC = () => {
   const { tasks, projects, teams, getTaskRiskLevel, calculateTaskProgress, getAllTeams } = useData();
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
 
-  const filteredTasks = tasks.filter(task => {
+  // فلترة المهام حسب المستخدم
+  let userFilteredTasks = tasks;
+  if (user?.role === 'member' && user?.teamId) {
+    userFilteredTasks = tasks.filter(task => task.assignedToTeamId === user.teamId);
+  }
+
+  const filteredTasks = userFilteredTasks.filter(task => {
     const statusMatch = statusFilter === 'all' || task.status === statusFilter;
     const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter;
     const teamMatch = teamFilter === 'all' || task.assignedToTeamId === teamFilter;
@@ -133,7 +141,7 @@ export const TaskList: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">إجمالي المهام</p>
-              <p className="text-2xl font-bold text-gray-900">{tasks.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{userFilteredTasks.length}</p>
             </div>
             <Target className="h-8 w-8 text-blue-500" />
           </div>
@@ -143,7 +151,7 @@ export const TaskList: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">قيد التنفيذ</p>
               <p className="text-2xl font-bold text-blue-600">
-                {tasks.filter(t => t.status === 'in-progress').length}
+                {userFilteredTasks.filter(t => t.status === 'in-progress').length}
               </p>
             </div>
             <Clock className="h-8 w-8 text-blue-500" />
@@ -154,7 +162,7 @@ export const TaskList: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">مكتملة</p>
               <p className="text-2xl font-bold text-green-600">
-                {tasks.filter(t => t.status === 'completed').length}
+                {userFilteredTasks.filter(t => t.status === 'completed').length}
               </p>
             </div>
             <div className="h-8 w-8 text-green-500">✅</div>
@@ -165,7 +173,7 @@ export const TaskList: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">متأخرة</p>
               <p className="text-2xl font-bold text-red-600">
-                {tasks.filter(t => t.isOverdue).length}
+                {userFilteredTasks.filter(t => t.isOverdue).length}
               </p>
             </div>
             <AlertTriangle className="h-8 w-8 text-red-500" />

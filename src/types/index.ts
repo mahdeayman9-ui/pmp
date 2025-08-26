@@ -3,6 +3,9 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'manager' | 'member';
+  teamId?: string;
+  username?: string;
+  generatedPassword?: string;
 }
 
 export interface Team {
@@ -147,6 +150,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  addUser?: (user: User) => void;
 }
 
 // إضافة واجهات جديدة للتحليلات
