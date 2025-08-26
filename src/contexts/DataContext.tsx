@@ -33,6 +33,9 @@ interface DataContextType {
   getRecentActivities: (limit?: number) => Activity[];
   getPhasesByProject: (projectId: string) => Phase[];
   
+  // Helper function to get all members from all teams
+  getAllMembers: () => Array<{ id: string; name: string; email: string; teamName: string; teamId: string }>;
+  
   // متتبع المهام المحسن
   logDailyAchievement: (taskId: string, achievement: any) => void;
   startTask: (taskId: string) => void;
@@ -425,6 +428,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getPhasesByProject = (projectId: string): Phase[] => {
     return phases.filter(phase => phase.projectId === projectId);
   };
+
+  const getAllMembers = () => {
+    const allMembers: Array<{ id: string; name: string; email: string; teamName: string; teamId: string }> = [];
+    
+    teams.forEach(team => {
+      team.members.forEach(member => {
+        allMembers.push({
+          id: member.userId,
+          name: member.name,
+          email: member.email,
+          teamName: team.name,
+          teamId: team.id
+        });
+      });
+    });
+    
+    return allMembers;
+  };
   
   // متتبع المهام المحسن
   const logDailyAchievement = (taskId: string, achievement: any) => {
@@ -730,6 +751,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       getOverdueTasks,
       getRecentActivities,
       getPhasesByProject,
+      getAllMembers,
       logDailyAchievement,
       startTask,
       completeTask,
