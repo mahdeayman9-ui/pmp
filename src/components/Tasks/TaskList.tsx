@@ -333,12 +333,12 @@ export const TaskList: React.FC = () => {
           <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مهام</h3>
           <p className="text-gray-500 mb-4">
-            {statusFilter !== 'all' || priorityFilter !== 'all' || assigneeFilter !== 'all'
+            {statusFilter !== 'all' || priorityFilter !== 'all' || teamFilter !== 'all'
               ? 'لا توجد مهام تطابق الفلاتر المحددة'
               : 'ابدأ بإنشاء مهمة جديدة لتتبع تقدمك'
             }
           </p>
-          {(statusFilter !== 'all' || priorityFilter !== 'all' || assigneeFilter !== 'all') && (
+          {(statusFilter !== 'all' || priorityFilter !== 'all' || teamFilter !== 'all') && (
             <button
               onClick={() => {
                 setStatusFilter('all');

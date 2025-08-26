@@ -12,34 +12,57 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // تحميل المستخدم الحالي
   useEffect(() => {
-    // التحقق من الجلسة الحالية
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setIsLoading(false);
+    let isMounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // التحقق من الجلسة الحالية
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          if (isMounted) setIsLoading(false);
+          return;
+        }
+
+        if (session?.user && isMounted) {
+          console.log('جلسة موجودة، تحميل الملف الشخصي...');
+          await loadUserProfile(session.user.id);
+        } else if (isMounted) {
+          console.log('لا توجد جلسة نشطة');
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (isMounted) setIsLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
 
     // الاستماع لتغييرات المصادقة
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        console.log('Auth state changed:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user && isMounted) {
           await loadUserProfile(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
+        } else if (event === 'SIGNED_OUT' && isMounted) {
           setUser(null);
           setIsLoading(false);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // تحميل ملف المستخدم الشخصي
   const loadUserProfile = async (userId: string) => {
     console.log('تحميل الملف الشخصي للمستخدم:', userId);
-    setIsLoading(true);
     
     try {
       const { data: profile, error } = await supabase
@@ -65,7 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 id: authUser.user.id,
                 email: authUser.user.email || '',
                 name: authUser.user.email?.split('@')[0] || 'مستخدم',
-                role: 'member'
+                role: 'admin' // أول مستخدم يكون admin
               });
             
             if (!insertError) {
@@ -77,6 +100,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         
         toast.error('فشل في تحميل بيانات المستخدم');
+        setIsLoading(false);
         return;
       }
 
@@ -150,13 +174,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (data.user) {
-        console.log('تم العثور على المستخدم، جاري تحميل الملف الشخصي...');
-        await loadUserProfile(data.user.id);
-        console.log('تم تحميل الملف الشخصي بنجاح');
+        console.log('تم العثور على المستخدم، سيتم تحميل الملف الشخصي تلقائياً...');
+        // لا نحتاج لاستدعاء loadUserProfile هنا لأن onAuthStateChange سيتولى الأمر
         return true;
       }
 
-      console.log('لم يتم العثور على بيانات المستخدم');
       return false;
     } catch (error) {
       console.error('Login error:', error);
@@ -217,18 +239,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         toast.success('تم إنشاء المستخدم بنجاح');
         await loadUsers(); // إعادة تحميل قائمة المستخدمين
-        
-        // إضافة المستخدم لقائمة المستخدمين المحلية
-        const userData: User = {
-          id: authData.user.id,
-          email: newUser.email,
-          name: newUser.name,
-          role: newUser.role,
-          username: newUser.username,
-          teamId: newUser.teamId,
-          generatedPassword: newUser.generatedPassword
-        };
-        setUsers(prev => [...prev, userData]);
       }
     } catch (error) {
       console.error('Error adding user:', error);

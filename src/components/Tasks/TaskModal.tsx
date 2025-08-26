@@ -40,12 +40,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     
     const assignedTeam = allTeams.find(t => t.id === formData.assignedToTeamId);
-    const selectedPhase = phases.find(p => p.id === formData.phaseId);
+    const selectedPhase = availablePhases.find(p => p.id === formData.phaseId);
     
     // حساب الهدف الافتراضي للمهمة بناءً على هدف المرحلة
     const phaseTarget = selectedPhase?.totalTarget || 100;
-    const phaseTasks = tasks.filter(t => t.phaseId === formData.phaseId);
-    const defaultTaskTarget = Math.ceil(phaseTarget / (phaseTasks.length + 1));
+    const defaultTaskTarget = Math.ceil(phaseTarget / 5); // افتراض 5 مهام لكل مرحلة
     
     const newTask = {
       title: formData.title,
@@ -100,7 +99,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Task Title
+              عنوان المهمة
             </label>
             <input
               type="text"
@@ -113,7 +112,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              الوصف
             </label>
             <textarea
               value={formData.description}
@@ -126,7 +125,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project
+              المشروع
             </label>
             <select
               value={formData.projectId}
@@ -134,7 +133,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="">Select a project</option>
+              <option value="">اختر مشروع</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -145,7 +144,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project Phase
+              مرحلة المشروع
             </label>
             <select
               value={formData.phaseId}
@@ -154,7 +153,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
               required
               disabled={!formData.projectId}
             >
-              <option value="">Select a project phase</option>
+              <option value="">اختر مرحلة المشروع</option>
               {availablePhases.map((phase) => (
                 <option key={phase.id} value={phase.id}>
                   {phase.name}
@@ -183,7 +182,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Priority
+              الأولوية
             </label>
             <select
               value={formData.priority}
@@ -191,16 +190,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="low">منخفضة</option>
+              <option value="medium">متوسطة</option>
+              <option value="high">عالية</option>
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
+                تاريخ البداية
               </label>
               <input
                 type="date"
@@ -213,7 +212,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
+                تاريخ النهاية
               </label>
               <input
                 type="date"
@@ -231,13 +230,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
               onClick={onClose}
               className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              Cancel
+              إلغاء
             </button>
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Create Task
+              إنشاء المهمة
             </button>
           </div>
         </form>
