@@ -420,6 +420,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getPhasesByProject = (projectId: string): Phase[] => {
     return phases.filter(phase => phase.projectId === projectId);
   };
+  
   // متتبع المهام المحسن
   const logDailyAchievement = (taskId: string, achievement: any) => {
     setTasks(prev => prev.map(task => {
@@ -602,6 +603,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setTasks(prev => prev.filter(t => t.id !== id));
   };
 
+  const addPhase = (phase: Omit<Phase, 'id' | 'createdAt'>) => {
+    const newPhase: Phase = {
+      ...phase,
+      id: Date.now().toString(),
+      createdAt: new Date()
+    };
+    setPhases(prev => [...prev, newPhase]);
+  };
+
+  const updatePhase = (id: string, updates: Partial<Phase>) => {
+    setPhases(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const deletePhase = (id: string) => {
+    setPhases(prev => prev.filter(p => p.id !== id));
+  };
+
   // حساب الإحصائيات المحسنة
   const enhancedProjects = useMemo(() => {
     return projects.map(project => {
@@ -651,9 +669,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addPhase,
       updatePhase,
       deletePhase,
-      addPhase,
-      updatePhase,
-      deletePhase,
       getAllTeams,
       getProjectAnalytics,
       getTeamAnalytics,
@@ -667,7 +682,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       completeTask,
       calculateTaskProgress,
       getTaskRiskLevel
-    }
     }}>
       {children}
     </DataContext.Provider>
