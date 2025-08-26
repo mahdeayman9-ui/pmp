@@ -667,9 +667,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       completeTask,
       calculateTaskProgress,
       getTaskRiskLevel
-    }}>
-      {children}
-    </DataContext.Provider>
   );
 };
 
