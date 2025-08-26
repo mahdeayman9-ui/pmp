@@ -61,6 +61,45 @@ export interface Task {
   phaseId: string;
   projectId: string; // Added: direct reference to project
   createdAt: Date;
+  // Enhanced task tracking fields
+  dailyAchievements?: DailyAchievement[];
+  totalTarget?: number;
+  actualStartDate?: Date;
+  actualEndDate?: Date;
+  plannedEffortHours?: number;
+  actualEffortHours?: number;
+}
+
+export interface DailyAchievement {
+  date: string; // ISO date string (YYYY-MM-DD)
+  value: number;
+  checkIn?: {
+    timestamp: string;
+    location: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  checkOut?: {
+    timestamp: string;
+    location: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  media?: MediaItem[];
+  voiceNotes?: VoiceNote[];
+}
+
+export interface MediaItem {
+  url: string;
+  type: 'image' | 'video';
+  timestamp: string;
+}
+
+export interface VoiceNote {
+  audioUrl: string;
+  timestamp: string;
 }
 
 export interface AuthContextType {

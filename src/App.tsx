@@ -10,6 +10,7 @@ import { ProjectList } from './components/Projects/ProjectList';
 import { TeamList } from './components/Teams/TeamList';
 import { MemberList } from './components/Members/MemberList';
 import { TaskList } from './components/Tasks/TaskList';
+import { TaskTracker } from './components/Tasks/TaskTracker';
 import { GanttChart } from './components/Gantt/GanttChart';
 import { Analytics } from './components/Analytics/Analytics';
 
@@ -34,6 +35,7 @@ function App() {
                 <Route path="teams" element={<TeamList />} />
                 <Route path="members" element={<MemberList />} />
                 <Route path="tasks" element={<TaskList />} />
+                <Route path="task-tracker" element={<TaskTracker />} />
                 <Route path="gantt" element={<GanttChart />} />
                 <Route path="analytics" element={<Analytics />} />
               </Route>

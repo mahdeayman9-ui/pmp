@@ -5,6 +5,7 @@ import {
   FolderKanban, 
   Users, 
   CheckSquare, 
+  Target,
   BarChart3, 
   Calendar,
   UserCheck,
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Teams', href: '/teams', icon: Users },
   { name: 'Members', href: '/members', icon: UserCheck },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Task Tracker', href: '/task-tracker', icon: Target },
   { name: 'Gantt Chart', href: '/gantt', icon: Calendar },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
 ];

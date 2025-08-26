@@ -143,7 +143,28 @@ const mockTasks: Task[] = [
     progress: 100,
     phaseId: '2',
     projectId: '1',
-    createdAt: subDays(new Date(), 15)
+    createdAt: subDays(new Date(), 15),
+    dailyAchievements: [
+      {
+        date: subDays(new Date(), 10).toISOString().split('T')[0],
+        value: 25,
+        checkIn: {
+          timestamp: subDays(new Date(), 10).toISOString(),
+          location: { latitude: 40.7128, longitude: -74.0060 }
+        },
+        checkOut: {
+          timestamp: new Date(subDays(new Date(), 10).getTime() + 8 * 60 * 60 * 1000).toISOString(),
+          location: { latitude: 40.7128, longitude: -74.0060 }
+        },
+        media: [],
+        voiceNotes: []
+      }
+    ],
+    totalTarget: 100,
+    actualStartDate: subDays(new Date(), 15),
+    actualEndDate: subDays(new Date(), 5),
+    plannedEffortHours: 8,
+    actualEffortHours: 8
   },
   {
     id: '2',
@@ -158,7 +179,23 @@ const mockTasks: Task[] = [
     progress: 60,
     phaseId: '2',
     projectId: '1',
-    createdAt: subDays(new Date(), 8)
+    createdAt: subDays(new Date(), 8),
+    dailyAchievements: [
+      {
+        date: subDays(new Date(), 5).toISOString().split('T')[0],
+        value: 30,
+        checkIn: {
+          timestamp: subDays(new Date(), 5).toISOString(),
+          location: { latitude: 40.7589, longitude: -73.9851 }
+        },
+        media: [],
+        voiceNotes: []
+      }
+    ],
+    totalTarget: 50,
+    actualStartDate: subDays(new Date(), 8),
+    plannedEffortHours: 6,
+    actualEffortHours: 4
   },
   {
     id: '3',
@@ -173,7 +210,11 @@ const mockTasks: Task[] = [
     progress: 0,
     phaseId: '2',
     projectId: '1',
-    createdAt: subDays(new Date(), 3)
+    createdAt: subDays(new Date(), 3),
+    dailyAchievements: [],
+    totalTarget: 75,
+    plannedEffortHours: 10,
+    actualEffortHours: 0
   },
   {
     id: '4',
@@ -188,7 +229,28 @@ const mockTasks: Task[] = [
     progress: 100,
     phaseId: '4',
     projectId: '2',
-    createdAt: subDays(new Date(), 10)
+    createdAt: subDays(new Date(), 10),
+    dailyAchievements: [
+      {
+        date: subDays(new Date(), 8).toISOString().split('T')[0],
+        value: 20,
+        checkIn: {
+          timestamp: subDays(new Date(), 8).toISOString(),
+          location: { latitude: 34.0522, longitude: -118.2437 }
+        },
+        checkOut: {
+          timestamp: new Date(subDays(new Date(), 8).getTime() + 6 * 60 * 60 * 1000).toISOString(),
+          location: { latitude: 34.0522, longitude: -118.2437 }
+        },
+        media: [],
+        voiceNotes: []
+      }
+    ],
+    totalTarget: 20,
+    actualStartDate: subDays(new Date(), 10),
+    actualEndDate: subDays(new Date(), 3),
+    plannedEffortHours: 6,
+    actualEffortHours: 6
   },
   {
     id: '5',
@@ -203,7 +265,23 @@ const mockTasks: Task[] = [
     progress: 75,
     phaseId: '4',
     projectId: '2',
-    createdAt: subDays(new Date(), 5)
+    createdAt: subDays(new Date(), 5),
+    dailyAchievements: [
+      {
+        date: subDays(new Date(), 3).toISOString().split('T')[0],
+        value: 15,
+        checkIn: {
+          timestamp: subDays(new Date(), 3).toISOString(),
+          location: { latitude: 37.7749, longitude: -122.4194 }
+        },
+        media: [],
+        voiceNotes: []
+      }
+    ],
+    totalTarget: 20,
+    actualStartDate: subDays(new Date(), 5),
+    plannedEffortHours: 7,
+    actualEffortHours: 5
   }
 ];
 
