@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { useEffect } from 'react';
+import { supabase, handleSupabaseError } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 import { Project, Phase, Task, Team, ProjectAnalytics, TeamAnalytics, DashboardStats, Activity } from '../types';
 import { addDays, subDays, differenceInDays, isAfter, isBefore } from 'date-fns';
+import toast from 'react-hot-toast';
 
 interface DataContextType {
   projects: Project[];
@@ -293,6 +296,7 @@ const mockActivities: Activity[] = [
 ];
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [teams, setTeams] = useState<Team[]>(mockTeams);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
@@ -300,13 +304,177 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // Initialize data loading
+  // تحميل البيانات من Supabase
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (user) {
+      loadAllData();
+    }
+  }, [user]);
+
+  // تحميل جميع البيانات من قاعدة البيانات
+  const loadAllData = async () => {
+    try {
+      setIsDataLoaded(false);
+      
+      // تحميل الشركات
+      const { data: companies } = await supabase
+        .from('companies')
+        .select('*')
+        .limit(1)
+        .single();
+
+      // تحميل الفرق
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          team_members (
+            id,
+            role,
+            joined_at,
+            profiles (
+              id,
+              name,
+              email
+            )
+          )
+        `);
+
+      if (teamsError) {
+        console.error('Error loading teams:', teamsError);
+        toast.error('فشل في تحميل الفرق');
+      } else if (teamsData) {
+        const formattedTeams: Team[] = teamsData.map(team => ({
+          id: team.id,
+          name: team.name,
+          description: team.description || '',
+          members: team.team_members?.map((member: any) => ({
+            id: member.id,
+            userId: member.profiles?.id || '',
+            name: member.profiles?.name || '',
+            email: member.profiles?.email || '',
+            role: member.role === 'lead' ? 'lead' : 'member',
+            joinedAt: new Date(member.joined_at)
+          })) || [],
+          createdAt: new Date(team.created_at)
+        }));
+        setTeams(formattedTeams);
+      }
+
+      // تحميل المشاريع
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*');
+
+      if (projectsError) {
+        console.error('Error loading projects:', projectsError);
+        toast.error('فشل في تحميل المشاريع');
+      } else if (projectsData) {
+        const formattedProjects: Project[] = projectsData.map(project => ({
+          id: project.id,
+          name: project.name,
+          description: project.description || '',
+          startDate: new Date(project.start_date),
+          endDate: new Date(project.end_date),
+          status: project.status as any,
+          progress: project.progress || 0,
+          teamId: project.team_id || '',
+          phases: [],
+          createdAt: new Date(project.created_at)
+        }));
+        setProjects(formattedProjects);
+      }
+
+      // تحميل المراحل
+      const { data: phasesData, error: phasesError } = await supabase
+        .from('phases')
+        .select('*');
+
+      if (phasesError) {
+        console.error('Error loading phases:', phasesError);
+        toast.error('فشل في تحميل المراحل');
+      } else if (phasesData) {
+        const formattedPhases: Phase[] = phasesData.map(phase => ({
+          id: phase.id,
+          name: phase.name,
+          description: phase.description || '',
+          totalTarget: phase.total_target || 100,
+          startDate: new Date(phase.start_date),
+          endDate: new Date(phase.end_date),
+          status: phase.status as any,
+          progress: phase.progress || 0,
+          projectId: phase.project_id,
+          createdAt: new Date(phase.created_at)
+        }));
+        setPhases(formattedPhases);
+      }
+
+      // تحميل المهام
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          teams (name),
+          daily_achievements (*)
+        `);
+
+      if (tasksError) {
+        console.error('Error loading tasks:', tasksError);
+        toast.error('فشل في تحميل المهام');
+      } else if (tasksData) {
+        const formattedTasks: Task[] = tasksData.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          status: task.status as any,
+          priority: task.priority as any,
+          assignedToTeamId: task.assigned_to_team_id,
+          assignedToTeamName: task.teams?.name,
+          startDate: new Date(task.start_date),
+          endDate: new Date(task.end_date),
+          progress: task.progress || 0,
+          phaseId: task.phase_id,
+          projectId: task.project_id,
+          createdAt: new Date(task.created_at),
+          dailyAchievements: task.daily_achievements?.map((achievement: any) => ({
+            date: achievement.date,
+            value: achievement.value || 0,
+            checkIn: achievement.check_in_time ? {
+              timestamp: achievement.check_in_time,
+              location: achievement.check_in_location || {}
+            } : undefined,
+            checkOut: achievement.check_out_time ? {
+              timestamp: achievement.check_out_time,
+              location: achievement.check_out_location || {}
+            } : undefined,
+            workHours: achievement.work_hours || 0,
+            notes: achievement.notes,
+            media: [],
+            voiceNotes: []
+          })) || [],
+          totalTarget: task.total_target || 100,
+          actualStartDate: task.actual_start_date ? new Date(task.actual_start_date) : undefined,
+          actualEndDate: task.actual_end_date ? new Date(task.actual_end_date) : undefined,
+          plannedEffortHours: task.planned_effort_hours || 40,
+          actualEffortHours: task.actual_effort_hours || 0,
+          riskLevel: task.risk_level as any || 'low',
+          completionRate: task.completion_rate || 0,
+          timeSpent: task.time_spent || 0,
+          isOverdue: task.is_overdue || false,
+          lastActivity: task.last_activity ? new Date(task.last_activity) : new Date()
+        }));
+        setTasks(formattedTasks);
+      }
+
       setIsDataLoaded(true);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+      toast.success('تم تحميل البيانات من قاعدة البيانات بنجاح');
+      
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('فشل في تحميل البيانات');
+      setIsDataLoaded(true);
+    }
+  };
 
   // Helper functions محسنة
   const getAllTeams = () => {
@@ -459,49 +627,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   // متتبع المهام المحسن
-  const logDailyAchievement = (taskId: string, achievement: any) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        const updatedAchievements = task.dailyAchievements || [];
-        const existingIndex = updatedAchievements.findIndex(a => a.date === achievement.date);
-        
-        if (existingIndex >= 0) {
-          updatedAchievements[existingIndex] = achievement;
-        } else {
-          updatedAchievements.push(achievement);
-        }
-        
-        const newProgress = calculateTaskProgress({ ...task, dailyAchievements: updatedAchievements });
-        const newRiskLevel = getTaskRiskLevel({ ...task, progress: newProgress });
-        
-        // إضافة نشاط جديد
-        const newActivity: Activity = {
-          id: Date.now().toString(),
-          type: 'achievement_logged',
-          description: `تم تسجيل إنجاز يومي لمهمة "${task.title}"`,
-          userId: task.assignedToUserId || '',
-          userName: task.assignedToName || '',
-          entityId: taskId,
-          entityType: 'task',
-          timestamp: new Date()
-        };
-        setActivities(prev => [newActivity, ...prev]);
-        
-        const updatedTask = {
-          ...task,
-          dailyAchievements: updatedAchievements,
-          progress: newProgress,
-          riskLevel: newRiskLevel,
-          lastActivity: new Date()
-        };
-        
-        // تحديث تقدم المرحلة
-        updatePhaseProgress(task.phaseId);
-        
-        return updatedTask;
+  const logDailyAchievement = async (taskId: string, achievement: any) => {
+    try {
+      // حفظ الإنجاز في قاعدة البيانات
+      const { error } = await supabase
+        .from('daily_achievements')
+        .upsert({
+          task_id: taskId,
+          user_id: user?.id,
+          date: achievement.date,
+          value: achievement.value || 0,
+          check_in_time: achievement.checkIn?.timestamp || null,
+          check_in_location: achievement.checkIn?.location || null,
+          check_out_time: achievement.checkOut?.timestamp || null,
+          check_out_location: achievement.checkOut?.location || null,
+          work_hours: achievement.workHours || 0,
+          notes: achievement.notes || null
+        });
+
+      if (error) {
+        toast.error(handleSupabaseError(error));
+        return;
       }
-      return task;
-    }));
+
+      // إعادة تحميل البيانات
+      await loadAllData();
+      toast.success('تم حفظ الإنجاز اليومي');
+      
+    } catch (error) {
+      console.error('Error logging achievement:', error);
+      toast.error('فشل في حفظ الإنجاز');
+    }
   };
 
   const startTask = (taskId: string) => {
@@ -569,25 +725,50 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // CRUD operations محسنة
-  const addProject = (project: Omit<Project, 'id' | 'createdAt'>) => {
-    const newProject: Project = {
-      ...project,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setProjects(prev => [...prev, newProject]);
-    
-    const newActivity: Activity = {
-      id: Date.now().toString(),
-      type: 'project_started',
-      description: `تم إنشاء مشروع جديد "${project.name}"`,
-      userId: 'current-user',
-      userName: 'المستخدم الحالي',
-      entityId: newProject.id,
-      entityType: 'project',
-      timestamp: new Date()
-    };
-    setActivities(prev => [newActivity, ...prev]);
+  const addProject = async (project: Omit<Project, 'id' | 'createdAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          name: project.name,
+          description: project.description,
+          start_date: project.startDate.toISOString().split('T')[0],
+          end_date: project.endDate.toISOString().split('T')[0],
+          status: project.status,
+          progress: project.progress,
+          team_id: project.teamId || null,
+          company_id: null,
+          created_by: user?.id || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(handleSupabaseError(error));
+        return;
+      }
+
+      if (data) {
+        const newProject: Project = {
+          id: data.id,
+          name: data.name,
+          description: data.description || '',
+          startDate: new Date(data.start_date),
+          endDate: new Date(data.end_date),
+          status: data.status,
+          progress: data.progress || 0,
+          teamId: data.team_id || '',
+          phases: [],
+          createdAt: new Date(data.created_at)
+        };
+        
+        setProjects(prev => [...prev, newProject]);
+        toast.success('تم إنشاء المشروع بنجاح');
+      }
+    } catch (error) {
+      console.error('Error adding project:', error);
+      toast.error('فشل في إنشاء المشروع');
+    }
   };
 
   const updateProject = (id: string, updates: Partial<Project>) => {
@@ -599,13 +780,49 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setTasks(prev => prev.filter(t => t.projectId !== id));
   };
 
-  const addTeam = (team: Omit<Team, 'id' | 'createdAt'>) => {
-    const newTeam: Team = {
-      ...team,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setTeams(prev => [...prev, newTeam]);
+  const addTeam = async (team: Omit<Team, 'id' | 'createdAt'>) => {
+    try {
+      // إنشاء الفريق
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          name: team.name,
+          description: team.description,
+          company_id: null
+        })
+        .select()
+        .single();
+
+      if (teamError) {
+        toast.error(handleSupabaseError(teamError));
+        return;
+      }
+
+      if (teamData && team.members.length > 0) {
+        // إضافة أعضاء الفريق
+        const teamMembersData = team.members.map(member => ({
+          team_id: teamData.id,
+          user_id: member.userId,
+          role: member.role
+        }));
+
+        const { error: membersError } = await supabase
+          .from('team_members')
+          .insert(teamMembersData);
+
+        if (membersError) {
+          console.error('Error adding team members:', membersError);
+        }
+      }
+
+      // إعادة تحميل البيانات
+      await loadAllData();
+      toast.success('تم إنشاء الفريق بنجاح');
+      
+    } catch (error) {
+      console.error('Error adding team:', error);
+      toast.error('فشل في إنشاء الفريق');
+    }
   };
 
   const updateTeam = (id: string, updates: Partial<Team>) => {
@@ -619,19 +836,45 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setTasks(prev => prev.filter(t => !projectsToDelete.includes(t.projectId)));
   };
 
-  const addTask = (task: Omit<Task, 'id' | 'createdAt'>) => {
-    const newTask: Task = {
-      ...task,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      dailyAchievements: [],
-      riskLevel: 'low',
-      completionRate: 0,
-      timeSpent: 0,
-      isOverdue: false,
-      lastActivity: new Date()
-    };
-    setTasks(prev => [...prev, newTask]);
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          assigned_to_team_id: task.assignedToTeamId,
+          assigned_to_user_id: null,
+          start_date: task.startDate.toISOString().split('T')[0],
+          end_date: task.endDate.toISOString().split('T')[0],
+          progress: task.progress,
+          phase_id: task.phaseId,
+          project_id: task.projectId,
+          total_target: task.totalTarget || 100,
+          planned_effort_hours: task.plannedEffortHours || 40,
+          risk_level: 'low',
+          completion_rate: 0,
+          created_by: user?.id || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(handleSupabaseError(error));
+        return;
+      }
+
+      if (data) {
+        // إعادة تحميل البيانات
+        await loadAllData();
+        toast.success('تم إنشاء المهمة بنجاح');
+      }
+    } catch (error) {
+      console.error('Error adding task:', error);
+      toast.error('فشل في إنشاء المهمة');
+    }
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
@@ -664,55 +907,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setTasks(prev => prev.filter(t => t.id !== id));
   };
 
-  const addPhase = (phase: Omit<Phase, 'id' | 'createdAt'>) => {
-    const newPhase: Phase = {
-      ...phase,
-      id: Date.now().toString(),
-      createdAt: new Date()
-    };
-    setPhases(prev => [...prev, newPhase]);
-    
-    // إنشاء مهمة تلقائية للمرحلة الجديدة
-    const project = projects.find(p => p.id === phase.projectId);
-    const autoTask: Task = {
-      id: (Date.now() + 1).toString(),
-      title: `مهمة ${phase.name}`,
-      description: `مهمة تلقائية للمرحلة: ${phase.description}`,
-      status: 'todo',
-      priority: 'medium',
-      assignedToTeamId: null,
-      assignedToTeamName: undefined,
-      startDate: phase.startDate,
-      endDate: phase.endDate,
-      progress: 0,
-      phaseId: newPhase.id,
-      projectId: phase.projectId,
-      createdAt: new Date(),
-      dailyAchievements: [],
-      totalTarget: phase.totalTarget || 100,
-      plannedEffortHours: 40,
-      actualEffortHours: 0,
-      riskLevel: 'low',
-      completionRate: 0,
-      timeSpent: 0,
-      isOverdue: false,
-      lastActivity: new Date()
-    };
-    
-    setTasks(prev => [...prev, autoTask]);
-    
-    // إضافة نشاط للمهمة المُنشأة تلقائياً
-    const newActivity: Activity = {
-      id: (Date.now() + 2).toString(),
-      type: 'task_created',
-      description: `تم إنشاء مهمة تلقائية "${autoTask.title}" للمرحلة "${phase.name}"`,
-      userId: 'system',
-      userName: 'النظام',
-      entityId: autoTask.id,
-      entityType: 'task',
-      timestamp: new Date()
-    };
-    setActivities(prev => [newActivity, ...prev]);
+  const addPhase = async (phase: Omit<Phase, 'id' | 'createdAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('phases')
+        .insert({
+          name: phase.name,
+          description: phase.description,
+          total_target: phase.totalTarget || 100,
+          start_date: phase.startDate.toISOString().split('T')[0],
+          end_date: phase.endDate.toISOString().split('T')[0],
+          status: phase.status,
+          progress: phase.progress,
+          project_id: phase.projectId
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast.error(handleSupabaseError(error));
+        return;
+      }
+
+      if (data) {
+        // إعادة تحميل البيانات
+        await loadAllData();
+        toast.success('تم إنشاء المرحلة بنجاح');
+      }
+    } catch (error) {
+      console.error('Error adding phase:', error);
+      toast.error('فشل في إنشاء المرحلة');
+    }
   };
 
   const updatePhase = (id: string, updates: Partial<Phase>) => {

@@ -133,9 +133,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // تسجيل الدخول
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('بدء عملية تسجيل الدخول:', email);
+    setIsLoading(true);
     
     try {
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -145,17 +145,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) {
         console.error('خطأ في المصادقة:', error);
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('بيانات الدخول غير صحيحة. تأكد من البريد الإلكتروني وكلمة المرور');
-        } else {
-          toast.error(handleSupabaseError(error));
-        }
+        toast.error(handleSupabaseError(error));
         return false;
       }
 
       if (data.user) {
         console.log('تم العثور على المستخدم، جاري تحميل الملف الشخصي...');
-        setIsLoading(true);
         await loadUserProfile(data.user.id);
         console.log('تم تحميل الملف الشخصي بنجاح');
         return true;
@@ -167,6 +162,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Login error:', error);
       toast.error('حدث خطأ أثناء تسجيل الدخول');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -187,12 +184,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // إضافة مستخدم جديد
-  const addUser = async (newUser: Omit<User, 'id'> & { password: string }) => {
+  const addUser = async (newUser: Omit<User, 'id'> & { password?: string; generatedPassword?: string }) => {
     try {
+      const password = newUser.password || newUser.generatedPassword || 'defaultPassword123';
+      
       // إنشاء حساب المصادقة
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
-        password: newUser.password,
+        password: password,
       });
 
       if (authError) {
@@ -220,6 +219,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         toast.success('تم إنشاء المستخدم بنجاح');
         await loadUsers(); // إعادة تحميل قائمة المستخدمين
+        
+        // إضافة المستخدم لقائمة المستخدمين المحلية
+        const userData: User = {
+          id: authData.user.id,
+          email: newUser.email,
+          name: newUser.name,
+          role: newUser.role,
+          username: newUser.username,
+          teamId: newUser.teamId,
+          generatedPassword: newUser.generatedPassword
+        };
+        setUsers(prev => [...prev, userData]);
       }
     } catch (error) {
       console.error('Error adding user:', error);
