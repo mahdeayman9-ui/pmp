@@ -721,8 +721,10 @@ function TaskCard({
   const handleStartTask = () => {
     const updatedTask = {
       ...task,
+      status: 'in-progress',
       actualStartDate: new Date(),
-      dailyAchievements: task.dailyAchievements || []
+      dailyAchievements: task.dailyAchievements || [],
+      lastActivity: new Date()
     };
     updateTask(task.id, updatedTask);
   };
@@ -737,8 +739,10 @@ function TaskCard({
     } else {
       const updatedTask = {
         ...task,
+        status: 'completed',
         actualEndDate: new Date(),
-        progress: 100
+        progress: 100,
+        lastActivity: new Date()
       };
       updateTask(task.id, updatedTask);
     }
@@ -889,6 +893,13 @@ export const TaskTracker: React.FC = () => {
   }));
 
   const handleUpdateTask = (taskId, updatedTask) => {
+    // تحديث المهمة مع إعادة حساب التقدم
+    const taskWithProgress = {
+      ...updatedTask,
+      progress: calculateTaskProgress(updatedTask),
+      riskLevel: getTaskRiskLevel(updatedTask),
+      lastActivity: new Date()
+    };
     updateTask(taskId, updatedTask);
   };
 

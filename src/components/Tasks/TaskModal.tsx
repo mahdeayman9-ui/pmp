@@ -40,6 +40,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     
     const assignedTeam = allTeams.find(t => t.id === formData.assignedToTeamId);
+    const selectedPhase = phases.find(p => p.id === formData.phaseId);
+    
+    // حساب الهدف الافتراضي للمهمة بناءً على هدف المرحلة
+    const phaseTarget = selectedPhase?.totalTarget || 100;
+    const phaseTasks = tasks.filter(t => t.phaseId === formData.phaseId);
+    const defaultTaskTarget = Math.ceil(phaseTarget / (phaseTasks.length + 1));
     
     const newTask = {
       title: formData.title,
@@ -53,6 +59,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
       progress: 0,
       phaseId: formData.phaseId,
       projectId: formData.projectId,
+      totalTarget: defaultTaskTarget,
+      dailyAchievements: [],
+      riskLevel: 'low' as const,
+      completionRate: 0,
+      timeSpent: 0,
+      isOverdue: false,
+      lastActivity: new Date()
     };
 
     addTask(newTask);

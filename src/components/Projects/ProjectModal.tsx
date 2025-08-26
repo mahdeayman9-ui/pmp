@@ -13,7 +13,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    teamId: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: addDays(new Date(), 30).toISOString().split('T')[0],
   });
@@ -28,7 +27,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
       endDate: new Date(formData.endDate),
       status: 'planning' as const,
       progress: 0,
-      teamId: formData.teamId,
+      teamId: '', // المشاريع لا تُسند لفريق معين
       phases: [],
     };
 
@@ -36,7 +35,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
     setFormData({
       name: '',
       description: '',
-      teamId: '',
       startDate: new Date().toISOString().split('T')[0],
       endDate: addDays(new Date(), 30).toISOString().split('T')[0],
     });
@@ -83,25 +81,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
               rows={3}
               required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              الفريق المسؤول
-            </label>
-            <select
-              value={formData.teamId}
-              onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
-              <option value="">اختر فريقاً</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -39,6 +39,7 @@ export const ProjectList: React.FC = () => {
   };
 
   const getTeamName = (teamId: string) => {
+    if (!teamId) return 'غير مُسند لفريق';
     const team = teams.find(t => t.id === teamId);
     return team?.name || 'فريق غير معروف';
   };

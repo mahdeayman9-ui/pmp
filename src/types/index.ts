@@ -43,6 +43,7 @@ export interface Phase {
   id: string;
   name: string;
   description: string;
+  totalTarget?: number;
   startDate: Date;
   endDate: Date;
   status: 'not-started' | 'in-progress' | 'completed';

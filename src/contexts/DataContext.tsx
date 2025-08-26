@@ -100,6 +100,7 @@ const mockPhases: Phase[] = [
     id: '1',
     name: 'التخطيط والتصميم',
     description: 'مرحلة التخطيط الأولي وتصميم واجهة المستخدم',
+    totalTarget: 200,
     startDate: subDays(new Date(), 20),
     endDate: subDays(new Date(), 10),
     status: 'completed',
@@ -111,6 +112,7 @@ const mockPhases: Phase[] = [
     id: '2',
     name: 'التطوير',
     description: 'مرحلة التطوير الأساسية',
+    totalTarget: 500,
     startDate: subDays(new Date(), 10),
     endDate: addDays(new Date(), 20),
     status: 'in-progress',
@@ -122,6 +124,7 @@ const mockPhases: Phase[] = [
     id: '3',
     name: 'الاختبار والنشر',
     description: 'مرحلة الاختبار والنشر',
+    totalTarget: 150,
     startDate: addDays(new Date(), 20),
     endDate: addDays(new Date(), 40),
     status: 'not-started',
@@ -133,6 +136,7 @@ const mockPhases: Phase[] = [
     id: '4',
     name: 'البحث',
     description: 'بحث المستخدمين وتحليل المنافسين',
+    totalTarget: 100,
     startDate: subDays(new Date(), 10),
     endDate: new Date(),
     status: 'in-progress',
@@ -144,6 +148,7 @@ const mockPhases: Phase[] = [
     id: '5',
     name: 'مرحلة التصميم',
     description: 'إنشاء تصاميم واجهة المستخدم الجديدة',
+    totalTarget: 120,
     startDate: new Date(),
     endDate: addDays(new Date(), 15),
     status: 'not-started',
@@ -585,13 +590,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateTask = (id: string, updates: Partial<Task>) => {
     setTasks(prev => prev.map(t => {
       if (t.id === id) {
-        const updatedTask = { ...t, ...updates, lastActivity: new Date() };
+        const updatedTask = { 
+          ...t, 
+          ...updates, 
+          lastActivity: new Date(),
+          // تحديث التقدم إذا تم تحديث الإنجازات اليومية
+          progress: updates.dailyAchievements ? 
+            calculateTaskProgress({ ...t, ...updates }) : 
+            (updates.progress !== undefined ? updates.progress : t.progress)
+        };
         
-        // إعادة حساب التقدم ومستوى المخاطر
-        if (updates.dailyAchievements) {
-          updatedTask.progress = calculateTaskProgress(updatedTask);
-          updatedTask.riskLevel = getTaskRiskLevel(updatedTask);
-        }
+        // إعادة حساب مستوى المخاطر
+        updatedTask.riskLevel = getTaskRiskLevel(updatedTask);
+        updatedTask.isOverdue = isAfter(new Date(), new Date(updatedTask.endDate)) && updatedTask.status !== 'completed';
         
         return updatedTask;
       }

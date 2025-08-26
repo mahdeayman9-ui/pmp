@@ -81,6 +81,11 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({
           <div className="text-sm text-gray-500 mb-2">
             <span className="font-medium">المشروع:</span> {projectName}
           </div>
+          {phase.totalTarget && (
+            <div className="text-sm text-gray-500 mb-2">
+              <span className="font-medium">الهدف الإجمالي:</span> {phase.totalTarget}
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-2 space-x-reverse">
           <button

@@ -15,6 +15,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    totalTarget: 100,
     startDate: new Date().toISOString().split('T')[0],
     endDate: addDays(new Date(), 14).toISOString().split('T')[0],
     status: 'not-started' as 'not-started' | 'in-progress' | 'completed',
@@ -28,6 +29,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
       setFormData({
         name: phase.name,
         description: phase.description,
+        totalTarget: phase.totalTarget || 100,
         startDate: new Date(phase.startDate).toISOString().split('T')[0],
         endDate: new Date(phase.endDate).toISOString().split('T')[0],
         status: phase.status,
@@ -36,6 +38,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
       setFormData({
         name: '',
         description: '',
+        totalTarget: 100,
         startDate: new Date().toISOString().split('T')[0],
         endDate: addDays(new Date(), 14).toISOString().split('T')[0],
         status: 'not-started',
@@ -54,6 +57,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
     const phaseData = {
       name: formData.name,
       description: formData.description,
+      totalTarget: Number(formData.totalTarget),
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
       status: formData.status,
@@ -71,6 +75,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
     setFormData({
       name: '',
       description: '',
+      totalTarget: 100,
       startDate: new Date().toISOString().split('T')[0],
       endDate: addDays(new Date(), 14).toISOString().split('T')[0],
       status: 'not-started',
@@ -133,6 +138,24 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ isOpen, onClose, project
               placeholder="وصف تفصيلي للمرحلة وأهدافها"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              الهدف الإجمالي للمرحلة
+            </label>
+            <input
+              type="number"
+              value={formData.totalTarget}
+              onChange={(e) => setFormData({ ...formData, totalTarget: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="100"
+              min="1"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              سيتم توزيع هذا الهدف على المهام المرتبطة بهذه المرحلة
+            </p>
           </div>
 
           <div>
