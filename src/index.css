@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Arabic RTL Support */
+html {
+  direction: rtl;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Custom RTL utilities */
+.ltr {
+  direction: ltr;
+}
+
+.rtl {
+  direction: rtl;
+}

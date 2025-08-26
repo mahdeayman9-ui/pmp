@@ -3,19 +3,19 @@ import { useLocation } from 'react-router-dom';
 import { Bell, Search } from 'lucide-react';
 
 const pageNames: { [key: string]: string } = {
-  '/': 'Dashboard',
-  '/projects': 'Projects',
-  '/teams': 'Teams',
-  '/members': 'Members',
-  '/tasks': 'Tasks',
-  '/task-tracker': 'Task Tracker',
-  '/gantt': 'Gantt Chart',
-  '/analytics': 'Analytics',
+  '/': 'لوحة التحكم',
+  '/projects': 'المشاريع',
+  '/teams': 'الفرق',
+  '/members': 'الأعضاء',
+  '/tasks': 'المهام',
+  '/task-tracker': 'متتبع المهام',
+  '/gantt': 'مخطط جانت',
+  '/analytics': 'التحليلات',
 };
 
 export const Header: React.FC = () => {
   const location = useLocation();
-  const currentPage = pageNames[location.pathname] || 'Page';
+  const currentPage = pageNames[location.pathname] || 'الصفحة';
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -24,17 +24,17 @@ export const Header: React.FC = () => {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">{currentPage}</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Manage your projects and teams effectively
+              إدارة مشاريعك وفرقك بفعالية
             </p>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 space-x-reverse">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
                 type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="بحث..."
+                className="pr-10 pl-4 py-2 w-80 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             

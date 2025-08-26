@@ -49,7 +49,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">New Project</h2>
+          <h2 className="text-xl font-semibold text-gray-900">مشروع جديد</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
@@ -61,7 +61,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project Name
+              اسم المشروع
             </label>
             <input
               type="text"
@@ -74,7 +74,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              الوصف
             </label>
             <textarea
               value={formData.description}
@@ -87,7 +87,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assigned Team
+              الفريق المسؤول
             </label>
             <select
               value={formData.teamId}
@@ -95,7 +95,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="">Select a team</option>
+              <option value="">اختر فريقاً</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name}
@@ -107,7 +107,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
+                تاريخ البداية
               </label>
               <input
                 type="date"
@@ -120,7 +120,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
+                تاريخ النهاية
               </label>
               <input
                 type="date"
@@ -132,19 +132,19 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 space-x-reverse pt-4">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              Cancel
+              إلغاء
             </button>
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Create Project
+              إنشاء المشروع
             </button>
           </div>
         </form>

@@ -17,28 +17,28 @@ export const Dashboard: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Projects"
+          title="إجمالي المشاريع"
           value={projects.length}
           icon={FolderKanban}
           color="blue"
           trend="+12%"
         />
         <StatsCard
-          title="Active Teams"
+          title="الفرق النشطة"
           value={teams.length}
           icon={Users}
           color="green"
           trend="+5%"
         />
         <StatsCard
-          title="Completed Tasks"
+          title="المهام المكتملة"
           value={completedTasks}
           icon={CheckSquare}
           color="purple"
           trend="+18%"
         />
         <StatsCard
-          title="In Progress"
+          title="قيد التنفيذ"
           value={inProgressProjects}
           icon={TrendingUp}
           color="orange"
@@ -54,7 +54,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Recent Projects */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Projects</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">المشاريع الحديثة</h3>
         <div className="space-y-4">
           {projects.slice(0, 3).map((project) => (
             <div key={project.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -62,7 +62,7 @@ export const Dashboard: React.FC = () => {
                 <h4 className="font-medium text-gray-900">{project.name}</h4>
                 <p className="text-sm text-gray-600">{project.description}</p>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 space-x-reverse">
                 <div className="w-32 bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
