@@ -7,12 +7,28 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
   console.error('Supabase error:', error);
-  return error.message || 'حدث خطأ غير متوقع';
+  
+  // ترجمة رسائل الخطأ الشائعة
+  const errorMessages: { [key: string]: string } = {
+    'Invalid login credentials': 'بيانات الدخول غير صحيحة',
+    'Email not confirmed': 'لم يتم تأكيد البريد الإلكتروني',
+    'User not found': 'المستخدم غير موجود',
+    'Email already registered': 'البريد الإلكتروني مسجل مسبقاً',
+    'Password should be at least 6 characters': 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
+  };
+  
+  return errorMessages[error.message] || error.message || 'حدث خطأ غير متوقع';
 };
 
 // Database types

@@ -19,7 +19,7 @@ export const Login: React.FC = () => {
     
     const success = await login(email, password);
     if (!success) {
-      setError('بيانات الدخول غير صحيحة. جرب: admin@demo.com / password');
+      setError('بيانات الدخول غير صحيحة. تأكد من صحة البريد الإلكتروني وكلمة المرور');
     }
   };
 
