@@ -20,11 +20,11 @@ interface DataContextType {
   deleteTask: (id: string) => void;
   
   // Helper functions
-  getAllMembers: () => Array<{ id: string; name: string; email: string; teamId: string; teamName: string; role: string }>;
+  getAllTeams: () => Array<{ id: string; name: string; description: string; memberCount: number }>;
   getProjectAnalytics: (projectId: string) => ProjectAnalytics;
   getTeamAnalytics: (teamId: string) => TeamAnalytics;
   getDashboardStats: () => DashboardStats;
-  getTasksByMember: (memberId: string) => Task[];
+  getTasksByTeam: (teamId: string) => Task[];
   getOverdueTasks: () => Task[];
   getRecentActivities: (limit?: number) => Activity[];
   
@@ -154,8 +154,8 @@ const mockTasks: Task[] = [
     description: 'تنفيذ تسجيل الدخول والخروج وإدارة المستخدمين',
     status: 'completed',
     priority: 'high',
-    assignedToUserId: '1',
-    assignedToName: 'أحمد المدير',
+    assignedToTeamId: '1',
+    assignedToTeamName: 'فريق التطوير',
     startDate: subDays(new Date(), 15),
     endDate: subDays(new Date(), 5),
     progress: 100,
@@ -196,8 +196,8 @@ const mockTasks: Task[] = [
     description: 'إنشاء صفحات قائمة المنتجات وتفاصيل المنتج المتجاوبة',
     status: 'in-progress',
     priority: 'high',
-    assignedToUserId: '4',
-    assignedToName: 'علياء المطورة',
+    assignedToTeamId: '1',
+    assignedToTeamName: 'فريق التطوير',
     startDate: subDays(new Date(), 8),
     endDate: addDays(new Date(), 5),
     progress: 60,
@@ -233,8 +233,8 @@ const mockTasks: Task[] = [
     description: 'إضافة وظيفة إضافة إلى السلة وإدارة السلة',
     status: 'todo',
     priority: 'medium',
-    assignedToUserId: '3',
-    assignedToName: 'محمد العضو',
+    assignedToTeamId: '2',
+    assignedToTeamName: 'فريق التصميم',
     startDate: new Date(),
     endDate: addDays(new Date(), 10),
     progress: 0,
@@ -283,17 +283,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
 
   // Helper functions محسنة
-  const getAllMembers = () => {
-    return teams.flatMap(team => 
-      team.members.map(member => ({
-        id: member.userId,
-        name: member.name,
-        email: member.email,
-        teamId: team.id,
-        teamName: team.name,
-        role: member.role
-      }))
-    );
+  const getAllTeams = () => {
+    return teams.map(team => ({
+      id: team.id,
+      name: team.name,
+      description: team.description,
+      memberCount: team.members.length
+    }));
   };
 
   const calculateTaskProgress = (task: Task): number => {
@@ -383,8 +379,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getDashboardStats = (): DashboardStats => {
     const completedTasks = tasks.filter(t => t.status === 'completed');
     const overdueTasks = tasks.filter(t => t.isOverdue);
-    const activeMembers = getAllMembers().filter(member => 
-      tasks.some(t => t.assignedToUserId === member.id && t.status === 'in-progress')
+    const activeTeams = getAllTeams().filter(team => 
+      tasks.some(t => t.assignedToTeamId === team.id && t.status === 'in-progress')
     );
 
     return {
@@ -394,14 +390,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       totalTasks: tasks.length,
       completedTasks: completedTasks.length,
       overdueTasks: overdueTasks.length,
-      totalMembers: getAllMembers().length,
-      activeMembers: activeMembers.length,
+      totalMembers: teams.reduce((acc, team) => acc + team.members.length, 0),
+      activeMembers: activeTeams.length,
       recentActivities: activities.slice(0, 10)
     };
   };
 
-  const getTasksByMember = (memberId: string): Task[] => {
-    return tasks.filter(t => t.assignedToUserId === memberId);
+  const getTasksByTeam = (teamId: string): Task[] => {
+    return tasks.filter(t => t.assignedToTeamId === teamId);
   };
 
   const getOverdueTasks = (): Task[] => {
@@ -639,11 +635,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTask,
       updateTask,
       deleteTask,
-      getAllMembers,
+      getAllTeams,
       getProjectAnalytics,
       getTeamAnalytics,
       getDashboardStats,
-      getTasksByMember,
+      getTasksByTeam,
       getOverdueTasks,
       getRecentActivities,
       logDailyAchievement,

@@ -872,7 +872,7 @@ function TaskCard({
 }
 
 export const TaskTracker: React.FC = () => {
-  const { tasks, updateTask, deleteTask, logDailyAchievement, startTask, completeTask, calculateTaskProgress, getTaskRiskLevel } = useData();
+  const { tasks, updateTask, deleteTask, logDailyAchievement, startTask, completeTask, calculateTaskProgress, getTaskRiskLevel, teams } = useData();
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [modal, setModal] = useState({ visible: false, message: '', onConfirm: null });
 
@@ -885,6 +885,7 @@ export const TaskTracker: React.FC = () => {
     actualEffortHours: 0,
     actualStartDate: task.actualStartDate || null,
     actualEndDate: task.actualEndDate || null,
+    teamName: teams.find(t => t.id === task.assignedToTeamId)?.name || 'غير محدد',
   }));
 
   const handleUpdateTask = (taskId, updatedTask) => {

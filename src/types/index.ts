@@ -57,8 +57,8 @@ export interface Task {
   description: string;
   status: 'todo' | 'in-progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
-  assignedToUserId: string | null;
-  assignedToName?: string;
+  assignedToTeamId: string | null;
+  assignedToTeamName?: string;
   startDate: Date;
   endDate: Date;
   progress: number;

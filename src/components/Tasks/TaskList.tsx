@@ -6,17 +6,17 @@ import { ar } from 'date-fns/locale';
 import { TaskModal } from './TaskModal';
 
 export const TaskList: React.FC = () => {
-  const { tasks, projects, teams, getTaskRiskLevel, calculateTaskProgress } = useData();
+  const { tasks, projects, teams, getTaskRiskLevel, calculateTaskProgress, getAllTeams } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [teamFilter, setTeamFilter] = useState('all');
 
   const filteredTasks = tasks.filter(task => {
     const statusMatch = statusFilter === 'all' || task.status === statusFilter;
     const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter;
-    const assigneeMatch = assigneeFilter === 'all' || task.assignedToUserId === assigneeFilter;
-    return statusMatch && priorityMatch && assigneeMatch;
+    const teamMatch = teamFilter === 'all' || task.assignedToTeamId === teamFilter;
+    return statusMatch && priorityMatch && teamMatch;
   });
 
   const getStatusColor = (status: string) => {
@@ -109,13 +109,7 @@ export const TaskList: React.FC = () => {
     return `${project.name} - ${phase?.name || 'مرحلة غير معروفة'}`;
   };
 
-  const allMembers = teams.flatMap(team => 
-    team.members.map(member => ({
-      id: member.userId,
-      name: member.name,
-      teamName: team.name
-    }))
-  );
+  const allTeams = getAllTeams();
 
   return (
     <div className="space-y-6">
@@ -210,24 +204,24 @@ export const TaskList: React.FC = () => {
           </select>
 
           <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
+            value={teamFilter}
+            onChange={(e) => setTeamFilter(e.target.value)}
             className="px-3 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           >
-            <option value="all">جميع الأعضاء</option>
-            {allMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
+            <option value="all">جميع الفرق</option>
+            {allTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
               </option>
             ))}
           </select>
 
-          {(statusFilter !== 'all' || priorityFilter !== 'all' || assigneeFilter !== 'all') && (
+          {(statusFilter !== 'all' || priorityFilter !== 'all' || teamFilter !== 'all') && (
             <button
               onClick={() => {
                 setStatusFilter('all');
                 setPriorityFilter('all');
-                setAssigneeFilter('all');
+                setTeamFilter('all');
               }}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
@@ -279,7 +273,7 @@ export const TaskList: React.FC = () => {
                 
                 <div className="flex items-center text-sm text-gray-500">
                   <User className="h-4 w-4 ml-2" />
-                  <span>{task.assignedToName || 'غير مُكلف'}</span>
+                  <span>{task.assignedToTeamName || 'غير مُكلف لفريق'}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -341,7 +335,7 @@ export const TaskList: React.FC = () => {
               onClick={() => {
                 setStatusFilter('all');
                 setPriorityFilter('all');
-                setAssigneeFilter('all');
+                setTeamFilter('all');
               }}
               className="text-blue-600 hover:text-blue-800 text-sm"
             >

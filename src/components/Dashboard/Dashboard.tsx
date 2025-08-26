@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
                     <div>
                       <h4 className="font-medium text-red-900">{task.title}</h4>
                       <p className="text-sm text-red-700">
-                        مُكلف إلى: {task.assignedToName || 'غير محدد'}
+                        مُكلف للفريق: {task.assignedToTeamName || 'غير محدد'}
                       </p>
                     </div>
                     <div className="text-left">

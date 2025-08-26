@@ -9,19 +9,19 @@ interface TaskModalProps {
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
-  const { projects, addTask, getAllMembers } = useData();
+  const { projects, addTask, getAllTeams } = useData();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     phaseId: '',
     projectId: '',
-    assignedToUserId: '',
+    assignedToTeamId: '',
     priority: 'medium',
     startDate: new Date().toISOString().split('T')[0],
     endDate: addDays(new Date(), 7).toISOString().split('T')[0],
   });
 
-  const allMembers = getAllMembers();
+  const allTeams = getAllTeams();
 
   // Get available phases based on selected project
   const availablePhases = formData.projectId 
@@ -39,15 +39,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const assignedMember = allMembers.find(m => m.id === formData.assignedToUserId);
+    const assignedTeam = allTeams.find(t => t.id === formData.assignedToTeamId);
     
     const newTask = {
       title: formData.title,
       description: formData.description,
       status: 'todo' as const,
       priority: formData.priority as 'low' | 'medium' | 'high',
-      assignedToUserId: formData.assignedToUserId || null,
-      assignedToName: assignedMember?.name,
+      assignedToTeamId: formData.assignedToTeamId || null,
+      assignedToTeamName: assignedTeam?.name,
       startDate: new Date(formData.startDate),
       endDate: new Date(formData.endDate),
       progress: 0,
@@ -61,7 +61,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
       description: '',
       phaseId: '',
       projectId: '',
-      assignedToUserId: '',
+      assignedToTeamId: '',
       priority: 'medium',
       startDate: new Date().toISOString().split('T')[0],
       endDate: addDays(new Date(), 7).toISOString().split('T')[0],
@@ -152,17 +152,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assign To
+              تعيين إلى فريق
             </label>
             <select
-              value={formData.assignedToUserId}
-              onChange={(e) => setFormData({ ...formData, assignedToUserId: e.target.value })}
+              value={formData.assignedToTeamId}
+              onChange={(e) => setFormData({ ...formData, assignedToTeamId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Unassigned</option>
-              {allMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} ({member.teamName})
+              <option value="">غير مُكلف لفريق</option>
+              {allTeams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name} ({team.memberCount} أعضاء)
                 </option>
               ))}
             </select>
