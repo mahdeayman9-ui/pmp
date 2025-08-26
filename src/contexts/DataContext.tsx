@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { useEffect } from 'react';
 import { Project, Phase, Task, Team, ProjectAnalytics, TeamAnalytics, DashboardStats, Activity } from '../types';
 import { addDays, subDays, differenceInDays, isAfter, isBefore } from 'date-fns';
 
@@ -297,6 +298,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [phases, setPhases] = useState<Phase[]>(mockPhases);
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Initialize data loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsDataLoaded(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Helper functions محسنة
   const getAllTeams = () => {

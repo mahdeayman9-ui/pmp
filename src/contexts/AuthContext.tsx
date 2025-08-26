@@ -39,6 +39,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // تحميل ملف المستخدم الشخصي
   const loadUserProfile = async (userId: string) => {
     try {
+      setIsLoading(true);
+      
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setIsLoading(false);
+      }, 10000); // 10 second timeout
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -46,8 +52,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
+        clearTimeout(timeoutId);
         console.error('Error loading profile:', error);
         setIsLoading(false);
+        setUser(null);
         return;
       }
 
@@ -62,6 +70,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setUser(userData);
       }
+      
+      clearTimeout(timeoutId);
     } catch (error) {
       console.error('Error loading user profile:', error);
     } finally {
