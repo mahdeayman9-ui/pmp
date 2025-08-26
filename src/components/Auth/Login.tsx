@@ -31,8 +31,7 @@ export const Login: React.FC = () => {
       } else {
         console.log('تم تسجيل الدخول بنجاح، سيتم التوجه للصفحة الرئيسية');
         toast.success('تم تسجيل الدخول بنجاح');
-        // Force navigation after successful login
-        window.location.href = '/';
+        // التوجه للصفحة الرئيسية سيحدث تلقائياً عبر ProtectedRoute
       }
     } catch (error) {
       console.error('خطأ في تسجيل الدخول:', error);

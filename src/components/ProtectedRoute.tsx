@@ -28,6 +28,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   useEffect(() => {
     console.log('ProtectedRoute - User:', user ? 'موجود' : 'غير موجود');
     console.log('ProtectedRoute - Loading:', isLoading);
+    
+    // إذا كان المستخدم موجود ولكن لا يزال في حالة تحميل، أوقف التحميل
+    if (user && isLoading) {
+      console.log('المستخدم موجود ولكن isLoading لا يزال true، سيتم إيقاف التحميل');
+      // هذا سيتم التعامل معه في AuthContext
+    }
   }, [user, isLoading]);
   if (isLoading) {
     return (

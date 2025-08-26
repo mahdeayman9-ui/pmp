@@ -41,19 +41,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     console.log('تحميل الملف الشخصي للمستخدم:', userId);
     
     try {
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        console.log('انتهت مهلة تحميل الملف الشخصي');
-        setIsLoading(false);
-      }, 10000); // 10 second timeout
-      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      clearTimeout(timeoutId);
       console.log('نتيجة تحميل الملف الشخصي:', { profile: profile?.email, error: error?.message });
 
       if (error) {
@@ -99,9 +92,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(userData);
         console.log('تم تعيين بيانات المستخدم بنجاح');
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading user profile:', error);
       toast.error('حدث خطأ في تحميل بيانات المستخدم');
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
