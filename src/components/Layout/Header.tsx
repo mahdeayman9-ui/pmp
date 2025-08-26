@@ -1,6 +1,8 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationPanel } from './NotificationPanel';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const pageNames: { [key: string]: string } = {
   '/': 'لوحة التحكم',
@@ -13,21 +15,32 @@ const pageNames: { [key: string]: string } = {
   '/gantt': 'مخطط جانت',
   '/analytics': 'التحليلات',
   '/reports': 'التقارير',
+  '/settings': 'الإعدادات',
 };
 
 export const Header: React.FC = () => {
   const location = useLocation();
+  const { settings } = useSettings();
   const currentPage = pageNames[location.pathname] || 'الصفحة';
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-soft border-b border-accent-light/30">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold gradient-text">{currentPage}</h1>
-            <p className="text-sm text-accent-dark/80 mt-1">
-              إدارة مشاريعك وفرقك بفعالية
-            </p>
+          <div className="flex items-center space-x-4 space-x-reverse">
+            {settings.logo && (
+              <img 
+                src={settings.logo} 
+                alt="لوجو الشركة" 
+                className="w-12 h-12 object-contain"
+              />
+            )}
+            <div>
+              <h1 className="text-2xl font-semibold gradient-text">{currentPage}</h1>
+              <p className="text-sm text-accent-dark/80 mt-1">
+                {settings.name} - إدارة مشاريعك وفرقك بفعالية
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center space-x-4 space-x-reverse">
@@ -40,12 +53,7 @@ export const Header: React.FC = () => {
               />
             </div>
             
-            <button className="relative p-2 text-accent-dark/70 hover:text-accent-dark hover:bg-accent-light/20 rounded-lg transition-colors">
-              <Bell className="h-6 w-6" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full flex items-center justify-center shadow-soft">
-                3
-              </span>
-            </button>
+            <NotificationPanel />
           </div>
         </div>
       </div>

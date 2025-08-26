@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../../contexts/DataContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { exportToPDF, exportToExcel, prepareReportData } from '../../utils/exportUtils';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area,
@@ -17,6 +19,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
 
 export const Reports: React.FC = () => {
   const { tasks, teams, projects, getAllMembers } = useData();
+  const { settings } = useSettings();
   const [selectedReport, setSelectedReport] = useState('overview');
   const [dateRange, setDateRange] = useState('month');
   const [selectedTeam, setSelectedTeam] = useState('all');
@@ -253,8 +256,39 @@ export const Reports: React.FC = () => {
   }, [filteredTasks, projects]);
 
   const exportReport = (reportType: string) => {
-    // هنا يمكن إضافة منطق تصدير التقرير
-    console.log(`تصدير تقرير: ${reportType}`);
+    let reportData;
+    let title = '';
+    
+    switch (reportType) {
+      case 'productivity':
+        reportData = prepareReportData(dailyProductivityReport, 'productivity');
+        title = 'تقرير الإنتاجية اليومية';
+        break;
+      case 'teams':
+        reportData = prepareReportData(teamPerformanceReport, 'teams');
+        title = 'تقرير أداء الفرق';
+        break;
+      case 'attendance':
+        reportData = prepareReportData(attendanceReport, 'attendance');
+        title = 'تقرير الحضور والانصراف';
+        break;
+      default:
+        reportData = { columns: [], data: [] };
+        title = 'تقرير عام';
+    }
+    
+    const exportOptions = {
+      title,
+      data: reportData.data,
+      columns: reportData.columns,
+      companyName: settings.name,
+      companyLogo: settings.logo || undefined,
+      filename: `${title}_${new Date().toISOString().split('T')[0]}`
+    };
+    
+    // تصدير PDF و Excel
+    exportToPDF(exportOptions);
+    setTimeout(() => exportToExcel(exportOptions), 1000);
   };
 
   const renderOverviewReport = () => (
@@ -857,10 +891,10 @@ export const Reports: React.FC = () => {
         <div className="flex items-center space-x-3 space-x-reverse">
           <button
             onClick={() => exportReport(selectedReport)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 space-x-reverse"
+            className="btn-success px-4 py-2 flex items-center space-x-2 space-x-reverse"
           >
             <Download className="h-5 w-5" />
-            <span>تصدير التقرير</span>
+            <span>تصدير PDF & Excel</span>
           </button>
         </div>
       </div>

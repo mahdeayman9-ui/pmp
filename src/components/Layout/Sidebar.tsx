@@ -13,7 +13,9 @@ import {
   FileText,
   GitBranch
 } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const navigation = [
   { name: 'لوحة التحكم', href: '/', icon: LayoutDashboard },
@@ -26,21 +28,34 @@ const navigation = [
   { name: 'مخطط جانت', href: '/gantt', icon: Calendar },
   { name: 'التحليلات', href: '/analytics', icon: BarChart3 },
   { name: 'التقارير', href: '/reports', icon: FileText },
+  { name: 'الإعدادات', href: '/settings', icon: Settings },
 ];
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
 
   // فلترة القائمة حسب دور المستخدم
   const filteredNavigation = user?.role === 'member' && user?.teamId 
-    ? navigation.filter(item => ['المهام', 'متتبع المهام'].includes(item.name))
+    ? navigation.filter(item => ['المهام', 'متتبع المهام', 'الإعدادات'].includes(item.name))
     : navigation;
 
   return (
     <div className="w-64 bg-white/95 backdrop-blur-sm shadow-strong h-full flex flex-col border-l border-accent-light/30">
       <div className="p-6 border-b border-accent-light/30 bg-gradient-to-br from-accent-light/20 to-accent-light/10">
-        <h1 className="text-xl font-bold gradient-text">إدارة المشاريع</h1>
-        <p className="text-sm text-accent-dark/80 mt-1">أهلاً، {user?.name}</p>
+        <div className="flex items-center space-x-3 space-x-reverse">
+          {settings.logo && (
+            <img 
+              src={settings.logo} 
+              alt="لوجو الشركة" 
+              className="w-10 h-10 object-contain"
+            />
+          )}
+          <div>
+            <h1 className="text-lg font-bold gradient-text">{settings.name}</h1>
+            <p className="text-sm text-accent-dark/80 mt-1">أهلاً، {user?.name}</p>
+          </div>
+        </div>
       </div>
       
       <nav className="flex-1 p-4">
