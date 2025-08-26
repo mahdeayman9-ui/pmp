@@ -1,82 +1,207 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase, handleSupabaseError } from '../lib/supabase';
 import { AuthContextType, User } from '../types';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock user data
-const mockUsers: User[] = [
-  {
-    id: '1',
-    email: 'admin@demo.com',
-    name: 'John Admin',
-    role: 'admin',
-    username: 'admin'
-  },
-  {
-    id: '2',
-    email: 'manager@demo.com',
-    name: 'Sarah Manager',
-    role: 'manager',
-    username: 'manager'
-  },
-  {
-    id: '3',
-    email: 'member@demo.com',
-    name: 'Mike Member',
-    role: 'member',
-    username: 'member'
-  }
-];
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
 
-  // دالة لإضافة مستخدم جديد
-  const addUser = (newUser: User) => {
-    setUsers(prev => [...prev, newUser]);
-  };
-
+  // تحميل المستخدم الحالي
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // التحقق من الجلسة الحالية
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // الاستماع لتغييرات المصادقة
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          await loadUserProfile(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  // تحميل ملف المستخدم الشخصي
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (profile) {
+        const userData: User = {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.role as 'admin' | 'manager' | 'member',
+          username: profile.username || undefined,
+          teamId: profile.team_id || undefined,
+        };
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // تحميل جميع المستخدمين (للمديرين)
+  const loadUsers = async () => {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading users:', error);
+        return;
+      }
+
+      const usersData: User[] = profiles.map(profile => ({
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        role: profile.role as 'admin' | 'manager' | 'member',
+        username: profile.username || undefined,
+        teamId: profile.team_id || undefined,
+      }));
+
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  // تسجيل الدخول
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // البحث بالإيميل أو اسم المستخدم
-    const foundUser = users.find(u => 
-      u.email === email || 
-      u.username === email ||
-      (u.generatedPassword && password === u.generatedPassword)
-    );
-    
-    if (foundUser && (password === 'password' || password === foundUser.generatedPassword)) {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(handleSupabaseError(error));
+        setIsLoading(false);
+        return false;
+      }
+
+      if (data.user) {
+        await loadUserProfile(data.user.id);
+        toast.success('تم تسجيل الدخول بنجاح');
+        return true;
+      }
+
       setIsLoading(false);
-      return true;
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('حدث خطأ أثناء تسجيل الدخول');
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+  // تسجيل الخروج
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error(handleSupabaseError(error));
+      } else {
+        setUser(null);
+        toast.success('تم تسجيل الخروج بنجاح');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('حدث خطأ أثناء تسجيل الخروج');
+    }
   };
+
+  // إضافة مستخدم جديد
+  const addUser = async (newUser: Omit<User, 'id'> & { password: string }) => {
+    try {
+      // إنشاء حساب المصادقة
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUser.email,
+        password: newUser.password,
+      });
+
+      if (authError) {
+        toast.error(handleSupabaseError(authError));
+        return;
+      }
+
+      if (authData.user) {
+        // إنشاء الملف الشخصي
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: newUser.email,
+            name: newUser.name,
+            role: newUser.role,
+            username: newUser.username,
+            team_id: newUser.teamId,
+          });
+
+        if (profileError) {
+          toast.error(handleSupabaseError(profileError));
+          return;
+        }
+
+        toast.success('تم إنشاء المستخدم بنجاح');
+        await loadUsers(); // إعادة تحميل قائمة المستخدمين
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('حدث خطأ أثناء إنشاء المستخدم');
+    }
+  };
+
+  // تحميل المستخدمين عند تسجيل الدخول كمدير
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'manager')) {
+      loadUsers();
+    }
+  }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading, addUser, users }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isLoading, 
+      addUser, 
+      users 
+    }}>
       {children}
     </AuthContext.Provider>
   );
