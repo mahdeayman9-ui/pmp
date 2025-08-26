@@ -9,7 +9,8 @@ import {
   BarChart3, 
   Calendar,
   UserCheck,
-  LogOut
+  LogOut,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
