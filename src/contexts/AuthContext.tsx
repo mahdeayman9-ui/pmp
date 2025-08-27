@@ -9,6 +9,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   // تحميل المستخدم الحالي
   useEffect(() => {
@@ -16,12 +17,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initializeAuth = async () => {
       try {
+        console.log('بدء تهيئة المصادقة...');
         // التحقق من الجلسة الحالية
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session error:', error);
-          if (isMounted) setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+            setAuthInitialized(true);
+          }
           return;
         }
 
@@ -31,10 +36,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else if (isMounted) {
           console.log('لا توجد جلسة نشطة');
           setIsLoading(false);
+          setAuthInitialized(true);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setAuthInitialized(true);
+        }
       }
     };
 
@@ -50,6 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else if (event === 'SIGNED_OUT' && isMounted) {
           setUser(null);
           setIsLoading(false);
+          setAuthInitialized(true);
         }
       }
     );
@@ -116,6 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setUser(userData);
         console.log('تم تعيين بيانات المستخدم بنجاح');
+        setAuthInitialized(true);
       }
       
     } catch (error) {

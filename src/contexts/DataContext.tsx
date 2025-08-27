@@ -306,10 +306,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // تحميل البيانات من Supabase
   useEffect(() => {
-    if (user) {
+    if (user && !isDataLoaded) {
       loadAllData();
     }
-  }, [user]);
+  }, [user, isDataLoaded]);
 
   // تحميل جميع البيانات من قاعدة البيانات
   const loadAllData = async () => {
