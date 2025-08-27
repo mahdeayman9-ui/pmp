@@ -74,6 +74,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadUserProfile = async (userId: string) => {
     console.log('تحميل الملف الشخصي للمستخدم:', userId);
     
+    console.log('تحميل الملف الشخصي للمستخدم:', userId);
+    
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -110,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         
         toast.error('فشل في تحميل بيانات المستخدم');
+        console.log('انتهت مهلة تحميل الملف الشخصي');
         setIsLoading(false);
         return;
       }
@@ -141,6 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // تحميل جميع المستخدمين (للمديرين)
   const loadUsers = async () => {
     try {
+      
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -204,9 +208,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { error } = await supabase.auth.signOut();
       if (error) {
         toast.error(handleSupabaseError(error));
-      } else {
-        setUser(null);
-        toast.success('تم تسجيل الخروج بنجاح');
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -218,7 +219,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addUser = async (newUser: Omit<User, 'id'> & { password?: string; generatedPassword?: string }) => {
     try {
       const password = newUser.password || newUser.generatedPassword || 'defaultPassword123';
-      
       // إنشاء حساب المصادقة
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
