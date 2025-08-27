@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 export const Dashboard: React.FC = () => {
-  const { getDashboardStats, getRecentActivities, getOverdueTasks } = useData();
+  const { getDashboardStats, getRecentActivities, getOverdueTasks, projects, tasks } = useData();
   
   const stats = getDashboardStats();
   const recentActivities = getRecentActivities(5);
