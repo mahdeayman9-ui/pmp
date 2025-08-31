@@ -207,18 +207,17 @@ export const TeamModal: React.FC<TeamModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             <button
-              onClick={() => setGeneratedCredentials(null)}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
               onClick={() => {
                 setGeneratedCredentials(null);
-                setFormData({ 
-                  name: '', 
-                  description: '', 
-                  leaderName: '', 
-                  leaderEmail: '' 
+                setFormData({
+                  name: '',
+                  description: '',
+                  leaderName: '',
+                  leaderEmail: ''
                 });
                 onClose();
               }}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
               فهمت، أغلق النافذة
             </button>

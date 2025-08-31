@@ -28,6 +28,8 @@ const navigation = [
   { name: 'مخطط جانت', href: '/gantt', icon: Calendar },
   { name: 'التحليلات', href: '/analytics', icon: BarChart3 },
   { name: 'التقارير', href: '/reports', icon: FileText },
+  { name: 'الإدارة المالية', href: '/page1', icon: FileText },
+  { name: 'صفحة 2', href: '/page2', icon: FileText },
   { name: 'الإعدادات', href: '/settings', icon: Settings },
 ];
 

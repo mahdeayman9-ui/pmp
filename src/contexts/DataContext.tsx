@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { supabase, handleSupabaseError } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { Project, Phase, Task, Team, ProjectAnalytics, TeamAnalytics, DashboardStats, Activity } from '../types';
-import { addDays, subDays, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { differenceInDays, isAfter } from 'date-fns';
 import toast from 'react-hot-toast';
 
 interface DataContextType {
@@ -51,257 +51,20 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Mock data محسن
-const mockTeams: Team[] = [
-  {
-    id: '1',
-    name: 'فريق التطوير',
-    description: 'مطورو الواجهة الأمامية والخلفية',
-    members: [
-      { id: '1', userId: '1', name: 'أحمد المدير', email: 'admin@demo.com', role: 'lead', joinedAt: subDays(new Date(), 30) },
-      { id: '2', userId: '3', name: 'محمد العضو', email: 'member@demo.com', role: 'member', joinedAt: subDays(new Date(), 15) },
-      { id: '4', userId: '4', name: 'علياء المطورة', email: 'alice@demo.com', role: 'member', joinedAt: subDays(new Date(), 20) }
-    ],
-    createdAt: subDays(new Date(), 30)
-  },
-  {
-    id: '2',
-    name: 'فريق التصميم',
-    description: 'مصممو واجهات المستخدم والفنانون البصريون',
-    members: [
-      { id: '3', userId: '2', name: 'سارة المديرة', email: 'manager@demo.com', role: 'lead', joinedAt: subDays(new Date(), 25) },
-      { id: '5', userId: '5', name: 'بوب المصمم', email: 'bob@demo.com', role: 'member', joinedAt: subDays(new Date(), 12) }
-    ],
-    createdAt: subDays(new Date(), 25)
-  }
-];
-
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    name: 'منصة التجارة الإلكترونية',
-    description: 'بناء منصة تجارة إلكترونية حديثة باستخدام React و Node.js',
-    startDate: subDays(new Date(), 20),
-    endDate: addDays(new Date(), 40),
-    status: 'in-progress',
-    progress: 65,
-    teamId: '1',
-    phases: [],
-    createdAt: subDays(new Date(), 20)
-  },
-  {
-    id: '2',
-    name: 'إعادة تصميم التطبيق المحمول',
-    description: 'إعادة تصميم كاملة لتطبيق الهاتف المحمول',
-    startDate: subDays(new Date(), 10),
-    endDate: addDays(new Date(), 30),
-    status: 'in-progress',
-    progress: 35,
-    teamId: '2',
-    phases: [],
-    createdAt: subDays(new Date(), 10)
-  }
-];
-
-const mockPhases: Phase[] = [
-  {
-    id: '1',
-    name: 'التخطيط والتصميم',
-    description: 'مرحلة التخطيط الأولي وتصميم واجهة المستخدم',
-    totalTarget: 200,
-    startDate: subDays(new Date(), 20),
-    endDate: subDays(new Date(), 10),
-    status: 'completed',
-    progress: 100,
-    projectId: '1',
-    createdAt: subDays(new Date(), 20)
-  },
-  {
-    id: '2',
-    name: 'التطوير',
-    description: 'مرحلة التطوير الأساسية',
-    totalTarget: 500,
-    startDate: subDays(new Date(), 10),
-    endDate: addDays(new Date(), 20),
-    status: 'in-progress',
-    progress: 70,
-    projectId: '1',
-    createdAt: subDays(new Date(), 15)
-  },
-  {
-    id: '3',
-    name: 'الاختبار والنشر',
-    description: 'مرحلة الاختبار والنشر',
-    totalTarget: 150,
-    startDate: addDays(new Date(), 20),
-    endDate: addDays(new Date(), 40),
-    status: 'not-started',
-    progress: 0,
-    projectId: '1',
-    createdAt: subDays(new Date(), 10)
-  },
-  {
-    id: '4',
-    name: 'البحث',
-    description: 'بحث المستخدمين وتحليل المنافسين',
-    totalTarget: 100,
-    startDate: subDays(new Date(), 10),
-    endDate: new Date(),
-    status: 'in-progress',
-    progress: 80,
-    projectId: '2',
-    createdAt: subDays(new Date(), 10)
-  },
-  {
-    id: '5',
-    name: 'مرحلة التصميم',
-    description: 'إنشاء تصاميم واجهة المستخدم الجديدة',
-    totalTarget: 120,
-    startDate: new Date(),
-    endDate: addDays(new Date(), 15),
-    status: 'not-started',
-    progress: 0,
-    projectId: '2',
-    createdAt: subDays(new Date(), 5)
-  }
-];
-
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'إنشاء نظام المصادقة',
-    description: 'تنفيذ تسجيل الدخول والخروج وإدارة المستخدمين',
-    status: 'completed',
-    priority: 'high',
-    assignedToTeamId: '1',
-    assignedToTeamName: 'فريق التطوير',
-    startDate: subDays(new Date(), 15),
-    endDate: subDays(new Date(), 5),
-    progress: 100,
-    phaseId: '1',
-    projectId: '1',
-    createdAt: subDays(new Date(), 15),
-    dailyAchievements: [
-      {
-        date: subDays(new Date(), 10).toISOString().split('T')[0],
-        value: 25,
-        checkIn: {
-          timestamp: subDays(new Date(), 10).toISOString(),
-          location: { latitude: 24.7136, longitude: 46.6753 }
-        },
-        checkOut: {
-          timestamp: new Date(subDays(new Date(), 10).getTime() + 8 * 60 * 60 * 1000).toISOString(),
-          location: { latitude: 24.7136, longitude: 46.6753 }
-        },
-        media: [],
-        voiceNotes: [],
-        workHours: 8
-      }
-    ],
-    totalTarget: 100,
-    actualStartDate: subDays(new Date(), 15),
-    actualEndDate: subDays(new Date(), 5),
-    plannedEffortHours: 40,
-    actualEffortHours: 38,
-    riskLevel: 'low',
-    completionRate: 100,
-    timeSpent: 2280,
-    isOverdue: false,
-    lastActivity: subDays(new Date(), 5)
-  },
-  {
-    id: '2',
-    title: 'تصميم كتالوج المنتجات',
-    description: 'إنشاء صفحات قائمة المنتجات وتفاصيل المنتج المتجاوبة',
-    status: 'in-progress',
-    priority: 'high',
-    assignedToTeamId: '1',
-    assignedToTeamName: 'فريق التطوير',
-    startDate: subDays(new Date(), 8),
-    endDate: addDays(new Date(), 5),
-    progress: 60,
-    phaseId: '2',
-    projectId: '1',
-    createdAt: subDays(new Date(), 8),
-    dailyAchievements: [
-      {
-        date: subDays(new Date(), 5).toISOString().split('T')[0],
-        value: 30,
-        checkIn: {
-          timestamp: subDays(new Date(), 5).toISOString(),
-          location: { latitude: 24.7136, longitude: 46.6753 }
-        },
-        media: [],
-        voiceNotes: [],
-        workHours: 6
-      }
-    ],
-    totalTarget: 50,
-    actualStartDate: subDays(new Date(), 8),
-    plannedEffortHours: 32,
-    actualEffortHours: 20,
-    riskLevel: 'medium',
-    completionRate: 60,
-    timeSpent: 1200,
-    isOverdue: false,
-    lastActivity: subDays(new Date(), 1)
-  },
-  {
-    id: '3',
-    title: 'تنفيذ سلة التسوق',
-    description: 'إضافة وظيفة إضافة إلى السلة وإدارة السلة',
-    status: 'todo',
-    priority: 'medium',
-    assignedToTeamId: '2',
-    assignedToTeamName: 'فريق التصميم',
-    startDate: new Date(),
-    endDate: addDays(new Date(), 10),
-    progress: 0,
-    phaseId: '2',
-    projectId: '1',
-    createdAt: subDays(new Date(), 3),
-    dailyAchievements: [],
-    totalTarget: 75,
-    plannedEffortHours: 50,
-    actualEffortHours: 0,
-    riskLevel: 'low',
-    completionRate: 0,
-    timeSpent: 0,
-    isOverdue: false,
-    lastActivity: subDays(new Date(), 3)
-  }
-];
-
-const mockActivities: Activity[] = [
-  {
-    id: '1',
-    type: 'task_completed',
-    description: 'تم إكمال مهمة "إنشاء نظام المصادقة"',
-    userId: '1',
-    userName: 'أحمد المدير',
-    entityId: '1',
-    entityType: 'task',
-    timestamp: subDays(new Date(), 5)
-  },
-  {
-    id: '2',
-    type: 'achievement_logged',
-    description: 'تم تسجيل إنجاز يومي لمهمة "تصميم كتالوج المنتجات"',
-    userId: '4',
-    userName: 'علياء المطورة',
-    entityId: '2',
-    entityType: 'task',
-    timestamp: subDays(new Date(), 1)
-  }
-];
+// Empty arrays for clean start - no mock data
+const emptyTeams: Team[] = [];
+const emptyProjects: Project[] = [];
+const emptyPhases: Phase[] = [];
+const emptyTasks: Task[] = [];
+const emptyActivities: Activity[] = [];
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [teams, setTeams] = useState<Team[]>(mockTeams);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [phases, setPhases] = useState<Phase[]>(mockPhases);
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
+  const [projects, setProjects] = useState<Project[]>(emptyProjects);
+  const [teams, setTeams] = useState<Team[]>(emptyTeams);
+  const [tasks, setTasks] = useState<Task[]>(emptyTasks);
+  const [phases, setPhases] = useState<Phase[]>(emptyPhases);
+  const [activities, setActivities] = useState<Activity[]>(emptyActivities);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // تحميل البيانات من Supabase
@@ -335,10 +98,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (teamsError) {
         console.error('Error loading teams:', teamsError);
-        console.log('No teams found, using mock data');
-        setTeams(mockTeams);
+        console.log('No teams found, starting with empty data');
+        setTeams(emptyTeams);
       } else if (teamsData) {
-        const formattedTeams: Team[] = teamsData.map(team => ({
+        const formattedTeams: Team[] = teamsData!.map(team => ({
           id: team.id,
           name: team.name,
           description: team.description || '',
@@ -362,10 +125,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (projectsError) {
         console.error('Error loading projects:', projectsError);
-        console.log('No projects found, using mock data');
-        setProjects(mockProjects);
+        console.log('No projects found, starting with empty data');
+        setProjects(emptyProjects);
       } else if (projectsData) {
-        const formattedProjects: Project[] = projectsData.map(project => ({
+        const formattedProjects: Project[] = projectsData!.map(project => ({
           id: project.id,
           name: project.name,
           description: project.description || '',
@@ -387,10 +150,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (phasesError) {
         console.error('Error loading phases:', phasesError);
-        console.log('No phases found, using mock data');
-        setPhases(mockPhases);
+        console.log('No phases found, starting with empty data');
+        setPhases(emptyPhases);
       } else if (phasesData) {
-        const formattedPhases: Phase[] = phasesData.map(phase => ({
+        const formattedPhases: Phase[] = phasesData!.map(phase => ({
           id: phase.id,
           name: phase.name,
           description: phase.description || '',
@@ -412,10 +175,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (tasksError) {
         console.error('Error loading tasks:', tasksError);
-        console.log('No tasks found, using mock data');
-        setTasks(mockTasks);
+        console.log('No tasks found, starting with empty data');
+        setTasks(emptyTasks);
       } else if (tasksData) {
-        const formattedTasks: Task[] = tasksData.map(task => ({
+        const formattedTasks: Task[] = tasksData!.map(task => ({
           id: task.id,
           title: task.title,
           description: task.description || '',
@@ -449,12 +212,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
     } catch (error) {
       console.error('Error loading data:', error);
-      console.log('استخدام البيانات التجريبية');
-      // استخدام البيانات التجريبية في حالة الخطأ
-      setTeams(mockTeams);
-      setProjects(mockProjects);
-      setPhases(mockPhases);
-      setTasks(mockTasks);
+      console.log('Starting with empty data due to error');
+      // استخدام البيانات الفارغة في حالة الخطأ
+      setTeams(emptyTeams);
+      setProjects(emptyProjects);
+      setPhases(emptyPhases);
+      setTasks(emptyTasks);
       setIsDataLoaded(true);
     }
   };

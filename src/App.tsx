@@ -18,6 +18,9 @@ import { Analytics } from './components/Analytics/Analytics';
 import { Reports } from './components/Reports/Reports';
 import { PhaseList } from './components/Phases/PhaseList';
 import { CompanySettings } from './components/Settings/CompanySettings';
+import { TestConnection } from './components/TestConnection';
+import FinancialManagement from './components/Pages/Page1';
+import Page2 from './components/Pages/Page2';
 
 function App() {
   return (
@@ -29,6 +32,7 @@ function App() {
               <div className="App">
                 <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/test-connection" element={<TestConnection />} />
                   <Route
                     path="/*"
                     element={
@@ -48,6 +52,8 @@ function App() {
                     <Route path="analytics" element={<Analytics />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="settings" element={<CompanySettings />} />
+                    <Route path="page1" element={<FinancialManagement />} />
+                    <Route path="page2" element={<Page2 />} />
                   </Route>
                 </Routes>
               </div>

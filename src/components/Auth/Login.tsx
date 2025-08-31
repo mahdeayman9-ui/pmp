@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogIn, Mail, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,28 +10,30 @@ export const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, login } = useAuth();
+  const navigate = useNavigate(); // للانتقال بين الصفحات
 
+  // لو المستخدم بالفعل مسجل دخول → يحوله مباشرة
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/projects" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
-      console.log('محاولة تسجيل الدخول:', { email, password: '***' });
+      console.log('=== بدء عملية تسجيل الدخول ===');
       const success = await login(email, password);
-      console.log('نتيجة تسجيل الدخول:', success);
-      
+
       if (!success) {
+        console.log('فشل تسجيل الدخول - بيانات غير صحيحة');
         setError('بيانات الدخول غير صحيحة. تأكد من صحة البريد الإلكتروني وكلمة المرور');
         toast.error('فشل في تسجيل الدخول');
       } else {
-        console.log('تم تسجيل الدخول بنجاح، سيتم التوجه للصفحة الرئيسية');
+        console.log('نجح تسجيل الدخول - سيتم التوجه لصفحة المشاريع');
         toast.success('تم تسجيل الدخول بنجاح');
-        // التوجه للصفحة الرئيسية سيحدث تلقائياً عبر ProtectedRoute
+        navigate('/projects'); // التحويل إلى صفحة المشاريع
       }
     } catch (error) {
       console.error('خطأ في تسجيل الدخول:', error);
@@ -39,6 +41,7 @@ export const Login: React.FC = () => {
       toast.error('حدث خطأ أثناء تسجيل الدخول');
     } finally {
       setIsLoading(false);
+      console.log('=== انتهاء عملية تسجيل الدخول ===');
     }
   };
 
