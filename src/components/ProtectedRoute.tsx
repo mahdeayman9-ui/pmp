@@ -1,5 +1,4 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,34 +6,39 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = React.memo(({ children }) => {
   const { user, isLoading } = useAuth();
   const [timeoutReached, setTimeoutReached] = useState(false);
 
-  // Debug logging
+  // تحسين: تقليل console.log واستخدام useMemo للوقاية من إعادة الرسم غير الضرورية
+  const shouldRedirect = useMemo(() => {
+    return timeoutReached || (!isLoading && !user);
+  }, [timeoutReached, isLoading, user]);
+
+  // إضافة timeout للتحميل - محسّن
   useEffect(() => {
-    console.log('ProtectedRoute - User:', user ? 'موجود' : 'غير موجود');
-    console.log('ProtectedRoute - Loading:', isLoading);
-  }, [user, isLoading]);
-  
-  // إضافة timeout للتحميل
-  useEffect(() => {
+    if (!isLoading) return; // لا نحتاج للـ timeout إذا لم نكن نتحمّل
+
     const timer = setTimeout(() => {
-      if (isLoading) {
-        console.log('انتهت مهلة التحميل، إعادة توجيه لتسجيل الدخول');
-        setTimeoutReached(true);
-      }
+      console.log('انتهت مهلة التحميل، إعادة توجيه لتسجيل الدخول');
+      setTimeoutReached(true);
     }, 10000); // 10 ثواني
 
     return () => clearTimeout(timer);
   }, [isLoading]);
 
+  // إعادة تعيين timeout عند تغيير حالة التحميل
+  useEffect(() => {
+    if (!isLoading) {
+      setTimeoutReached(false);
+    }
+  }, [isLoading]);
+
   // إذا انتهت المهلة أو لا يوجد مستخدم
-  if (timeoutReached || (!isLoading && !user)) {
-    console.log('ProtectedRoute - توجيه إلى صفحة تسجيل الدخول');
+  if (shouldRedirect) {
     return <Navigate to="/login" replace />;
   }
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-accent-light/30 via-accent-light/20 to-accent-dark/20 flex items-center justify-center">
@@ -47,7 +51,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-
-  console.log('ProtectedRoute - عرض المحتوى المحمي');
+  // إزالة console.log المفرط لتحسين الأداء
   return <>{children}</>;
-};
+});

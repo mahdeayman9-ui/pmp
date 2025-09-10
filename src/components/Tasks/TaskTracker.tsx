@@ -1643,7 +1643,7 @@ function TaskCard({
     }
     // If task hasn't started, show planned date range
     return getDatesInRange(task.startDate, task.endDate);
-  }, [task.startDate, task.endDate, task.actualStartDate]);
+  }, [task.startDate, task.endDate, task.actualStartDate]); // تبسيط dependencies
 
   const achievementsMap = useMemo(() => {
     const map = new Map();
@@ -1949,7 +1949,7 @@ export const TaskTracker: React.FC = () => {
     }
   }, [taskId, enhancedTasks]);
 
-  // Sync offline data when connection is restored
+  // Sync offline data when connection is restored - محسن لتجنب تسريب الذاكرة
   useEffect(() => {
     const handleOnline = async () => {
       console.log('Connection restored, syncing offline data...');
@@ -1994,7 +1994,7 @@ export const TaskTracker: React.FC = () => {
 
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
-  }, [taskId]);
+  }, []); // إزالة taskId من dependencies لتجنب إعادة إضافة المستمع
 
   const handleUpdateTask = (taskId: string, updatedTask: Task) => {
     // تحديث المهمة مع إعادة حساب التقدم

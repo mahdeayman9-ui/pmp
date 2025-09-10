@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { StatsCard } from './StatsCard';
 import { ProjectProgress } from './ProjectProgress';
@@ -7,12 +7,13 @@ import { FolderKanban, Users, CheckSquare, TrendingUp, AlertTriangle, Clock } fr
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
-export const Dashboard: React.FC = () => {
+export const Dashboard: React.FC = React.memo(() => {
   const { getDashboardStats, getRecentActivities, getOverdueTasks, projects, tasks } = useData();
-  
-  const stats = getDashboardStats();
-  const recentActivities = getRecentActivities(5);
-  const overdueTasks = getOverdueTasks();
+
+  // تحسين الأداء باستخدام useMemo للعمليات المكلفة
+  const stats = useMemo(() => getDashboardStats(), [getDashboardStats]);
+  const recentActivities = useMemo(() => getRecentActivities(5), [getRecentActivities]);
+  const overdueTasks = useMemo(() => getOverdueTasks(), [getOverdueTasks]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -170,4 +171,4 @@ export const Dashboard: React.FC = () => {
       </div>
     </div>
   );
-};
+});

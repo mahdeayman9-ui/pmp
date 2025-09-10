@@ -7,11 +7,13 @@ import { differenceInDays, isAfter } from 'date-fns';
 import toast from 'react-hot-toast';
 
 interface DataContextType {
-  projects: Project[];
-  teams: Team[];
-  tasks: Task[];
-  phases: Phase[];
-  activities: Activity[];
+   projects: Project[];
+   teams: Team[];
+   tasks: Task[];
+   phases: Phase[];
+   activities: Activity[];
+   isLoading: boolean;
+   isDataLoaded: boolean;
 
   // CRUD operations
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<void>;
@@ -65,33 +67,37 @@ const emptyTasks: Task[] = [];
 const emptyActivities: Activity[] = [];
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>(emptyProjects);
-  const [teams, setTeams] = useState<Team[]>(emptyTeams);
-  const [tasks, setTasks] = useState<Task[]>(emptyTasks);
-  const [phases, setPhases] = useState<Phase[]>(emptyPhases);
-  const [activities, setActivities] = useState<Activity[]>(emptyActivities);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [autoSaveEnabled] = useState(true);
-  const [pendingChanges, setPendingChanges] = useState<Map<string, any>>(new Map());
+   const { user } = useAuth();
+   const [projects, setProjects] = useState<Project[]>(emptyProjects);
+   const [teams, setTeams] = useState<Team[]>(emptyTeams);
+   const [tasks, setTasks] = useState<Task[]>(emptyTasks);
+   const [phases, setPhases] = useState<Phase[]>(emptyPhases);
+   const [activities, setActivities] = useState<Activity[]>(emptyActivities);
+   const [isDataLoaded, setIsDataLoaded] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
+   const [autoSaveEnabled] = useState(true);
+   const [pendingChanges, setPendingChanges] = useState<Map<string, any>>(new Map());
 
-  // تحميل البيانات من Supabase
+  // تحميل البيانات من Supabase - محسن للأداء
   useEffect(() => {
-    if (user && !isDataLoaded) {
+    if (user && !isDataLoaded && !isLoading) {
       loadAllData();
     }
-  }, [user, isDataLoaded]);
+  }, [user, isDataLoaded, isLoading]);
 
-  // Auto-save functionality
+  // Auto-save functionality - محسن للأداء
   useEffect(() => {
-    if (!autoSaveEnabled || pendingChanges.size === 0) return;
+    if (!autoSaveEnabled || pendingChanges.size === 0 || isLoading) return;
 
     const autoSaveTimer = setTimeout(async () => {
-      await savePendingChanges();
-    }, 2000); // Auto-save after 2 seconds of inactivity
+      // تحقق من وجود تغييرات معلقة قبل الحفظ
+      if (pendingChanges.size > 0 && !isLoading) {
+        await savePendingChanges();
+      }
+    }, 5000); // زيادة الوقت إلى 5 ثوانٍ لتقليل التكرار
 
     return () => clearTimeout(autoSaveTimer);
-  }, [pendingChanges, autoSaveEnabled]);
+  }, [pendingChanges, autoSaveEnabled, isLoading]);
 
   // Save pending changes to database
   const savePendingChanges = async () => {
@@ -204,38 +210,66 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // تحميل جميع البيانات من قاعدة البيانات
+  // تحميل جميع البيانات من قاعدة البيانات - محسن للأداء
   const loadAllData = async () => {
-    try {
-      setIsDataLoaded(false);
-      
-      // تحميل الفرق مع الأعضاء من جدول simple_team_members (LEFT JOIN لإظهار الفرق بدون أعضاء)
-       const { data: teamsData, error: teamsError } = await supabase
-         .from('teams')
-         .select(`
-           *,
-           simple_team_members (
-             id,
-             name,
-             email,
-             role,
-             department,
-             job_title,
-             salary,
-             id_photo_url,
-             pdf_file_url,
-             created_at
-           )
-         `);
+    if (isLoading) return; // Prevent multiple simultaneous loads
 
-      let formattedTeams: Team[] = [];
+    try {
+      setIsLoading(true);
+      setIsDataLoaded(false);
+
+      console.log('بدء تحميل البيانات...');
+
+      // تحميل البيانات بشكل متتابع لتجنب التحميل الثقيل
+      await loadTeams();
+      await loadProjects();
+      await loadPhases();
+      await loadTasks();
+
+      setIsDataLoaded(true);
+      console.log('تم تحميل البيانات بنجاح');
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+      console.log('Starting with empty data due to error');
+      // استخدام البيانات الفارغة في حالة الخطأ
+      setTeams(emptyTeams);
+      setProjects(emptyProjects);
+      setPhases(emptyPhases);
+      setTasks(emptyTasks);
+      setIsDataLoaded(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // تحميل الفرق بشكل منفصل
+  const loadTeams = async () => {
+    try {
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select(`
+          *,
+          simple_team_members (
+            id,
+            name,
+            email,
+            role,
+            department,
+            job_title,
+            salary,
+            id_photo_url,
+            pdf_file_url,
+            created_at
+          )
+        `)
+        .limit(100); // تحديد الحد الأقصى
+
       if (teamsError) {
         console.error('Error loading teams:', teamsError);
-        console.log('No teams found, starting with empty data');
-        formattedTeams = emptyTeams;
         setTeams(emptyTeams);
       } else if (teamsData) {
-        formattedTeams = teamsData!.map(team => ({
+        const formattedTeams = teamsData.map(team => ({
           id: team.id,
           name: team.name,
           description: team.description || '',
@@ -258,18 +292,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setTeams(formattedTeams);
       }
+    } catch (error) {
+      console.error('Error in loadTeams:', error);
+      setTeams(emptyTeams);
+    }
+  };
 
-      // تحميل المشاريع
+  // تحميل المشاريع بشكل منفصل
+  const loadProjects = async () => {
+    try {
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('*');
+        .select('*')
+        .limit(200); // تحديد الحد الأقصى
 
       if (projectsError) {
         console.error('Error loading projects:', projectsError);
-        console.log('No projects found, starting with empty data');
         setProjects(emptyProjects);
       } else if (projectsData) {
-        const formattedProjects: Project[] = projectsData!.map(project => ({
+        const formattedProjects = projectsData.map(project => ({
           id: project.id,
           name: project.name,
           description: project.description || '',
@@ -283,18 +324,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setProjects(formattedProjects);
       }
+    } catch (error) {
+      console.error('Error in loadProjects:', error);
+      setProjects(emptyProjects);
+    }
+  };
 
-      // تحميل المراحل
+  // تحميل المراحل بشكل منفصل
+  const loadPhases = async () => {
+    try {
       const { data: phasesData, error: phasesError } = await supabase
         .from('phases')
-        .select('*');
+        .select('*')
+        .limit(500); // تحديد الحد الأقصى
 
       if (phasesError) {
         console.error('Error loading phases:', phasesError);
-        console.log('No phases found, starting with empty data');
         setPhases(emptyPhases);
       } else if (phasesData) {
-        const formattedPhases: Phase[] = phasesData!.map(phase => ({
+        const formattedPhases = phasesData.map(phase => ({
           id: phase.id,
           name: phase.name,
           description: phase.description || '',
@@ -308,102 +356,58 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setPhases(formattedPhases);
       }
+    } catch (error) {
+      console.error('Error in loadPhases:', error);
+      setPhases(emptyPhases);
+    }
+  };
 
-      // تحميل المهام
-      let tasksData: any[] = [];
-      let tasksError = null;
-
-      try {
-        // محاولة تحميل المهام بالطريقة العادية أولاً
-        const { data: regularData } = await supabase
-          .from('tasks')
-          .select(`
-            *,
-            profiles!assigned_to_user_id (
-              name
-            )
-          `);
-
-        if (regularData && regularData.length > 0) {
-          tasksData = regularData;
-          console.log('Tasks loaded successfully:', tasksData.length);
-        } else {
-          console.log('No tasks loaded with regular query, trying alternative approach...');
-
-          // محاولة تحميل المهام بدون RLS restrictions للمستخدمين الذين يواجهون مشاكل
-          const { data: altData, error: altError } = await supabase
-            .from('tasks')
-            .select('*')
-            .limit(1000); // تحميل حد أقصى للمهام
-
-          if (altData && altData.length > 0) {
-            tasksData = altData.map(task => ({
-              ...task,
-              profiles: null // لا نستطيع تحميل بيانات الملف الشخصي بدون RLS
-            }));
-            console.log('Tasks loaded with alternative query:', tasksData.length);
-          } else {
-            console.error('Alternative query also failed:', altError);
-            tasksError = altError;
-          }
-        }
-      } catch (error) {
-        console.error('Error loading tasks:', error);
-        tasksError = error;
-      }
+  // تحميل المهام بشكل منفصل
+  const loadTasks = async () => {
+    try {
+      // تحميل المهام بدون JOIN معقد لتحسين الأداء
+      const { data: tasksData, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .limit(1000); // تحديد الحد الأقصى
 
       if (tasksError) {
         console.error('Error loading tasks:', tasksError);
-        console.log('No tasks found, starting with empty data');
         setTasks(emptyTasks);
       } else if (tasksData) {
-        const formattedTasks: Task[] = tasksData!.map(task => {
-          // البحث عن اسم الفريق المُكلف باستخدام البيانات المحملة حديثاً
-          const assignedTeam = formattedTeams.find(t => t.id === task.assigned_to_team_id);
-          return {
-            id: task.id,
-            title: task.title,
-            description: task.description || '',
-            status: task.status as any,
-            priority: task.priority as any,
-            assignedToTeamId: task.assigned_to_team_id,
-            assignedToTeamName: assignedTeam?.name || 'غير محدد',
-            startDate: new Date(task.start_date),
-            endDate: new Date(task.end_date),
-            progress: task.progress || 0,
-            phaseId: task.phase_id,
-            projectId: task.project_id,
-            createdAt: new Date(task.created_at),
-            dailyAchievements: [], // سيتم تحميلها لاحقاً
-            totalTarget: task.total_target || 100,
-            actualStartDate: task.actual_start_date ? new Date(task.actual_start_date) : undefined,
-            actualEndDate: task.actual_end_date ? new Date(task.actual_end_date) : undefined,
-            plannedEffortHours: task.planned_effort_hours || 40,
-            actualEffortHours: task.actual_effort_hours || 0,
-            riskLevel: task.risk_level as any || 'low',
-            completionRate: task.completion_rate || 0,
-            timeSpent: task.time_spent || 0,
-            isOverdue: task.is_overdue || false,
-            lastActivity: task.last_activity ? new Date(task.last_activity) : new Date(),
-            assignedToUserId: task.assigned_to_user_id || undefined,
-            assignedToName: task.profiles?.name || '',
-          };
-        });
+        const formattedTasks = tasksData.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          status: task.status as any,
+          priority: task.priority as any,
+          assignedToTeamId: task.assigned_to_team_id,
+          assignedToTeamName: 'سيتم تحديثه لاحقاً', // سيتم تحديثه في useMemo
+          startDate: new Date(task.start_date),
+          endDate: new Date(task.end_date),
+          progress: task.progress || 0,
+          phaseId: task.phase_id,
+          projectId: task.project_id,
+          createdAt: new Date(task.created_at),
+          dailyAchievements: [],
+          totalTarget: task.total_target || 100,
+          actualStartDate: task.actual_start_date ? new Date(task.actual_start_date) : undefined,
+          actualEndDate: task.actual_end_date ? new Date(task.actual_end_date) : undefined,
+          plannedEffortHours: task.planned_effort_hours || 40,
+          actualEffortHours: task.actual_effort_hours || 0,
+          riskLevel: task.risk_level as any || 'low',
+          completionRate: task.completion_rate || 0,
+          timeSpent: task.time_spent || 0,
+          isOverdue: task.is_overdue || false,
+          lastActivity: task.last_activity ? new Date(task.last_activity) : new Date(),
+          assignedToUserId: task.assigned_to_user_id || undefined,
+          assignedToName: '',
+        }));
         setTasks(formattedTasks);
       }
-
-      setIsDataLoaded(true);
-      console.log('تم تحميل البيانات بنجاح');
-      
     } catch (error) {
-      console.error('Error loading data:', error);
-      console.log('Starting with empty data due to error');
-      // استخدام البيانات الفارغة في حالة الخطأ
-      setTeams(emptyTeams);
-      setProjects(emptyProjects);
-      setPhases(emptyPhases);
+      console.error('Error in loadTasks:', error);
       setTasks(emptyTasks);
-      setIsDataLoaded(true);
     }
   };
 
@@ -1095,39 +1099,47 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return pendingChanges.size;
   };
 
-  // حساب الإحصائيات المحسنة
+  // حساب الإحصائيات المحسنة - محسن للأداء
   const enhancedProjects = useMemo(() => {
+    // تجنب إعادة الحساب إذا لم تتغير البيانات الأساسية
+    if (!isDataLoaded) return projects;
+
     return projects.map(project => {
       const projectTasks = tasks.filter(t => t.projectId === project.id);
       const projectPhases = phases.filter(p => p.projectId === project.id);
       const completedTasks = projectTasks.filter(t => t.status === 'completed');
       const overdueTasks = projectTasks.filter(t => t.isOverdue);
-      
+
       return {
         ...project,
         phases: projectPhases,
         totalTasks: projectTasks.length,
         completedTasks: completedTasks.length,
         overdueTasks: overdueTasks.length,
-        progress: projectTasks.length > 0 
-          ? Math.round(projectTasks.reduce((sum, task) => sum + calculateTaskProgress(task), 0) / projectTasks.length)
+        progress: projectTasks.length > 0
+          ? Math.round(projectTasks.reduce((sum, task) => sum + (task.progress || 0), 0) / projectTasks.length)
           : 0
       };
     });
-  }, [projects, tasks, phases]);
+  }, [projects, tasks, phases, isDataLoaded]);
 
   const enhancedTasks = useMemo(() => {
+    // تجنب إعادة الحساب إذا لم تتغير البيانات الأساسية
+    if (!isDataLoaded) return tasks;
+
     return tasks.map(task => {
       const totalAchieved = (task.dailyAchievements || []).reduce((sum, achievement) => sum + (achievement.value || 0), 0);
-      
+
       return {
         ...task,
-        progress: calculateTaskProgress(task),
+        progress: task.progress || 0, // استخدام القيمة المحفوظة بدلاً من إعادة الحساب
         isOverdue: isAfter(new Date(), new Date(task.endDate)) && task.status !== 'completed',
-        totalAchieved
+        totalAchieved,
+        // تحديث اسم الفريق المُكلف
+        assignedToTeamName: teams.find(t => t.id === task.assignedToTeamId)?.name || 'غير محدد'
       };
     });
-  }, [tasks]);
+  }, [tasks, teams, isDataLoaded]);
 
   return (
     <DataContext.Provider value={{
@@ -1136,6 +1148,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       tasks: enhancedTasks,
       phases,
       activities,
+      isLoading,
+      isDataLoaded,
       addProject,
       updateProject,
       deleteProject,

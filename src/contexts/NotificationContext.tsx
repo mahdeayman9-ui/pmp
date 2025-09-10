@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useData } from './DataContext';
 import { Bell, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
@@ -26,8 +26,9 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { tasks, projects } = useData();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+   const { tasks, projects } = useData();
+   const [notifications, setNotifications] = useState<Notification[]>([]);
+   const createdNotificationsRef = useRef<Set<string>>(new Set());
 
   // فحص المهام المتأخرة والمواعيد النهائية
   useEffect(() => {
@@ -42,13 +43,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
         // مهام متأخرة
         if (endDate < today && task.status !== 'completed') {
-          const existingNotification = notifications.find(
-            n => n.taskId === task.id && n.type === 'overdue'
-          );
+          const notificationId = `overdue-${task.id}`;
 
-          if (!existingNotification) {
+          if (!createdNotificationsRef.current.has(notificationId)) {
             const notification: Notification = {
-              id: `overdue-${task.id}-${Date.now()}`,
+              id: `${notificationId}-${Date.now()}`,
               type: 'overdue',
               title: 'مهمة متأخرة',
               message: `المهمة "${task.title}" في مشروع "${project?.name}" متأخرة`,
@@ -59,7 +58,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             };
 
             setNotifications(prev => [...prev, notification]);
-            
+            createdNotificationsRef.current.add(notificationId);
+
             toast.error(notification.message, {
               icon: <AlertTriangle className="h-5 w-5" />,
               duration: 5000,
@@ -69,13 +69,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
         // مهام تنتهي غداً
         if (endDate.toDateString() === tomorrow.toDateString() && task.status !== 'completed') {
-          const existingNotification = notifications.find(
-            n => n.taskId === task.id && n.type === 'deadline'
-          );
+          const notificationId = `deadline-${task.id}`;
 
-          if (!existingNotification) {
+          if (!createdNotificationsRef.current.has(notificationId)) {
             const notification: Notification = {
-              id: `deadline-${task.id}-${Date.now()}`,
+              id: `${notificationId}-${Date.now()}`,
               type: 'deadline',
               title: 'موعد نهائي قريب',
               message: `المهمة "${task.title}" تنتهي غداً`,
@@ -86,8 +84,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             };
 
             setNotifications(prev => [...prev, notification]);
-            
-            toast.warning(notification.message, {
+            createdNotificationsRef.current.add(notificationId);
+
+            toast(notification.message, {
               icon: <Clock className="h-5 w-5" />,
               duration: 4000,
             });
@@ -97,15 +96,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         // مهام مكتملة
         if (task.status === 'completed' && task.actualEndDate) {
           const completedToday = new Date(task.actualEndDate).toDateString() === today.toDateString();
-          
-          if (completedToday) {
-            const existingNotification = notifications.find(
-              n => n.taskId === task.id && n.type === 'completed'
-            );
 
-            if (!existingNotification) {
+          if (completedToday) {
+            const notificationId = `completed-${task.id}`;
+
+            if (!createdNotificationsRef.current.has(notificationId)) {
               const notification: Notification = {
-                id: `completed-${task.id}-${Date.now()}`,
+                id: `${notificationId}-${Date.now()}`,
                 type: 'completed',
                 title: 'مهمة مكتملة',
                 message: `تم إكمال المهمة "${task.title}" بنجاح`,
@@ -116,7 +113,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               };
 
               setNotifications(prev => [...prev, notification]);
-              
+              createdNotificationsRef.current.add(notificationId);
+
               toast.success(notification.message, {
                 icon: <CheckCircle className="h-5 w-5" />,
                 duration: 3000,
@@ -133,8 +131,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     // فحص كل 30 دقيقة
     const interval = setInterval(checkTasks, 30 * 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [tasks, projects, notifications]);
+    return () => {
+      clearInterval(interval);
+      // Clear the ref when component unmounts to prevent memory leaks
+      createdNotificationsRef.current.clear();
+    };
+  }, [tasks, projects]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
