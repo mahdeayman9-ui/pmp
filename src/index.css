@@ -50,6 +50,15 @@ body {
   border-radius: 3px;
 }
 
+/* Hide scrollbar for sidebar nav */
+.sidebar-nav {
+  scrollbar-width: none; /* Firefox */
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
 /* Professional Components */
 @layer components {
   .card-professional {

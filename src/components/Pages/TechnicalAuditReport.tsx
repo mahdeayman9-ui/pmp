@@ -165,10 +165,10 @@ const TechnicalAuditReport: React.FC = () => {
     try {
       console.log('Loading projects for user:', user.id);
 
-      // Get user's profile to find their team_id
+      // Get user's profile to find their team_id and role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('team_id')
+        .select('team_id, role')
         .eq('id', user.id)
         .single();
 
@@ -178,21 +178,12 @@ const TechnicalAuditReport: React.FC = () => {
       }
 
       console.log('User profile:', profile);
+      console.log('User role:', profile.role);
 
-      if (!profile?.team_id) {
-        console.warn('User is not assigned to any team');
-        setError('المستخدم ليس مرتبطاً بأي فريق. يرجى التواصل مع الإدارة لربطك بفريق.');
-        setProjects([]);
-        return;
-      }
-
-      console.log('User team ID:', profile.team_id);
-
-      // Get projects for user's team
+      // Load all projects (same as DataContext)
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, description, status, team_id')
-        .eq('team_id', profile.team_id)
         .order('name');
 
       if (error) {
@@ -200,7 +191,7 @@ const TechnicalAuditReport: React.FC = () => {
         throw error;
       }
 
-      console.log('Projects loaded:', data);
+      console.log('Projects loaded:', data?.length || 0, 'projects');
       setProjects(data || []);
       setError(null); // Clear any previous errors
     } catch (err: any) {

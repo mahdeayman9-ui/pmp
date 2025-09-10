@@ -79,11 +79,11 @@ const Page2: React.FC = () => {
     );
   }
 
-  console.log('🔄 Page2 component mounted');
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
   const [costData, setCostData] = useState<CostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [filterType, setFilterType] = useState<'all' | 'revenue' | 'cost'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -97,6 +97,10 @@ const Page2: React.FC = () => {
   const [editingRevenue, setEditingRevenue] = useState<RevenueData | null>(null);
   const [editingCost, setEditingCost] = useState<CostData | null>(null);
 
+  // Prevent multiple simultaneous data loads
+  const isLoadingRef = useRef(false);
+  const hasLoadedRef = useRef(false);
+
   const revenueChartRef = useRef<HTMLCanvasElement>(null);
   const costChartRef = useRef<HTMLCanvasElement>(null);
   const varianceChartRef = useRef<HTMLCanvasElement>(null);
@@ -106,8 +110,21 @@ const Page2: React.FC = () => {
   const varianceChart = useRef<Chart | null>(null);
 
   // Load data from Supabase
-  const loadData = async () => {
+  const loadData = async (force = false) => {
+    // Prevent multiple simultaneous loads
+    if (isLoadingRef.current && !force) {
+      console.log('⚠️ تحميل البيانات جاري بالفعل، تم تجاهل الطلب');
+      return;
+    }
+
+    // If data has already been loaded and not forced, skip
+    if (hasLoadedRef.current && !force) {
+      console.log('ℹ️ البيانات محملة بالفعل، تم تجاهل الطلب');
+      return;
+    }
+
     try {
+      isLoadingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -207,19 +224,19 @@ const Page2: React.FC = () => {
       setRevenueData(revenue || []);
       setCostData(costs || []);
 
-      // Update charts with real data only
-      const finalRevenue = revenue || [];
-      const finalCosts = costs || [];
-
-      console.log('📈 جاري تحديث الرسوم البيانية بالبيانات الحقيقية...');
-      updateCharts(finalRevenue, finalCosts);
+      // Charts will be updated by the useEffect below
 
       console.log('🎉 تم تحميل البيانات بنجاح!');
+      hasLoadedRef.current = true;
+      setRetryCount(0); // Reset retry count on success
     } catch (err: any) {
       console.error('💥 خطأ عام في تحميل البيانات:', err);
-      setError(`حدث خطأ أثناء تحميل البيانات: ${err.message || 'خطأ غير معروف'}`);
+      const errorMessage = `حدث خطأ أثناء تحميل البيانات: ${err.message || 'خطأ غير معروف'}`;
+      setError(errorMessage);
+      setRetryCount(prev => prev + 1);
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -645,10 +662,12 @@ const Page2: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, [user]);
+    if (user && !hasLoadedRef.current) {
+      loadData();
+    }
+  }, [user?.id]); // Use user.id instead of user object to prevent unnecessary re-renders
 
-  // Cleanup charts on unmount
+  // Cleanup charts on unmount and reset refs
   useEffect(() => {
     return () => {
       if (revenueChart.current) {
@@ -663,6 +682,9 @@ const Page2: React.FC = () => {
         varianceChart.current.destroy();
         varianceChart.current = null;
       }
+      // Reset refs on unmount
+      isLoadingRef.current = false;
+      hasLoadedRef.current = false;
     };
   }, []);
 
@@ -706,7 +728,7 @@ const Page2: React.FC = () => {
                   onChange={(e) => {
                     setSelectedProjectId(e.target.value);
                     // Reload data when project changes
-                    setTimeout(() => loadData(), 100);
+                    loadData(true);
                   }}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                 >
@@ -721,7 +743,7 @@ const Page2: React.FC = () => {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={loadData}
+                onClick={() => loadData(true)}
                 className="btn-secondary flex items-center gap-2"
               >
                 <i className="fas fa-sync-alt"></i>
@@ -746,13 +768,31 @@ const Page2: React.FC = () => {
               <h3 className="text-lg font-semibold text-red-800">خطأ في تحميل البيانات</h3>
             </div>
             <p className="text-red-700 mb-4">{error}</p>
-            <button
-              onClick={loadData}
-              className="btn-primary"
-            >
-              <i className="fas fa-redo mr-2"></i>
-              إعادة المحاولة
-            </button>
+            {retryCount > 0 && (
+              <p className="text-sm text-red-600 mb-4">
+                عدد المحاولات: {retryCount}
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => loadData(true)}
+                className="btn-primary"
+                disabled={loading}
+              >
+                <i className="fas fa-redo mr-2"></i>
+                {loading ? 'جاري إعادة المحاولة...' : 'إعادة المحاولة'}
+              </button>
+              <button
+                onClick={() => {
+                  setError(null);
+                  setRetryCount(0);
+                }}
+                className="btn-secondary"
+              >
+                <i className="fas fa-times mr-2"></i>
+                إغلاق
+              </button>
+            </div>
           </div>
         )}
 
@@ -797,11 +837,11 @@ const Page2: React.FC = () => {
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={resetFilters} className="btn-secondary">
+            <button onClick={() => loadData(true)} className="btn-secondary">
               <i className="fas fa-redo mr-2"></i>
               إعادة تعيين
             </button>
-            <button onClick={applyFilters} className="btn-primary">
+            <button onClick={() => loadData(true)} className="btn-primary">
               <i className="fas fa-check mr-2"></i>
               تطبيق الفلتر
             </button>

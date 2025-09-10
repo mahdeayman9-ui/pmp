@@ -95,7 +95,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
       
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto sidebar-nav">
         <ul className="space-y-2">
           {/* Expandable Sections */}
           {navigationSections.map((section) => (
