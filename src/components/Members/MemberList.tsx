@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Plus, Mail, Calendar, Users, Crown, User } from 'lucide-react';
+import { Plus, Mail, Calendar, Users, Crown, User, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { AddMemberModal } from './AddMemberModal';
+import { EditMemberModal } from './EditMemberModal';
 
 export const MemberList: React.FC = () => {
-  const { teams } = useData();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+   const { teams } = useData();
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Get all members from all teams
-  const allMembers = teams.flatMap(team => 
-    team.members.map(member => ({
-      ...member,
-      teamName: team.name,
-      teamId: team.id
-    }))
-  );
+   const allMembers = teams.flatMap(team =>
+     team.members.map(member => ({
+       ...member,
+       teamName: team.name,
+       teamId: team.id,
+       department: (member as any).department,
+       jobTitle: (member as any).jobTitle,
+       salary: (member as any).salary,
+       idPhotoUrl: (member as any).idPhotoUrl,
+       pdfFileUrl: (member as any).pdfFileUrl,
+     }))
+   );
 
   const getRoleIcon = (role: string) => {
     return role === 'lead' ? Crown : User;
@@ -31,6 +39,11 @@ export const MemberList: React.FC = () => {
   const handleAddMember = (teamId: string) => {
     setSelectedTeamId(teamId);
     setIsModalOpen(true);
+  };
+
+  const handleEditMember = (member: any) => {
+    setSelectedMember(member);
+    setIsEditModalOpen(true);
   };
 
   return (
@@ -134,10 +147,33 @@ export const MemberList: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span className="truncate">{member.email}</span>
-                </div>
+                {member.email && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Mail className="h-4 w-4 mr-2" />
+                    <span className="truncate">{member.email}</span>
+                  </div>
+                )}
+
+                {member.department && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Users className="h-4 w-4 mr-2" />
+                    <span>القسم: {member.department}</span>
+                  </div>
+                )}
+
+                {member.jobTitle && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Users className="h-4 w-4 mr-2" />
+                    <span>المسمى الوظيفي: {member.jobTitle}</span>
+                  </div>
+                )}
+
+                {member.salary && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Users className="h-4 w-4 mr-2" />
+                    <span>الراتب: {member.salary.toLocaleString()} ريال</span>
+                  </div>
+                )}
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Users className="h-4 w-4 mr-2" />
@@ -146,14 +182,23 @@ export const MemberList: React.FC = () => {
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>انضم {format(member.joinedAt, 'dd MMM yyyy', { locale: ar })}</span>
+                  <span>انضم {format(member.joinedAt, 'dd MMM yyyy')}</span>
                 </div>
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <button className="btn-secondary w-full py-2 px-4 text-sm font-medium">
-                  عرض الملف الشخصي
-                </button>
+                <div className="flex space-x-2 space-x-reverse">
+                  <button
+                    onClick={() => handleEditMember(member)}
+                    className="btn-primary flex-1 py-2 px-4 text-sm font-medium flex items-center justify-center space-x-2 space-x-reverse"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span>تعديل</span>
+                  </button>
+                  <button className="btn-secondary flex-1 py-2 px-4 text-sm font-medium">
+                    عرض الملف الشخصي
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -171,13 +216,22 @@ export const MemberList: React.FC = () => {
         </div>
       )}
 
-      <AddMemberModal 
+      <AddMemberModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setSelectedTeamId('');
         }}
         teamId={selectedTeamId}
+      />
+
+      <EditMemberModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedMember(null);
+        }}
+        member={selectedMember}
       />
     </div>
   );

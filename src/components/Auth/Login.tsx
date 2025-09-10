@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogIn, Mail, Lock } from 'lucide-react';
+import { LogIn, User, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,11 +24,11 @@ export const Login: React.FC = () => {
 
     try {
       console.log('=== بدء عملية تسجيل الدخول ===');
-      const success = await login(email, password);
+      const success = await login(username, password);
 
       if (!success) {
         console.log('فشل تسجيل الدخول - بيانات غير صحيحة');
-        setError('بيانات الدخول غير صحيحة. تأكد من صحة البريد الإلكتروني وكلمة المرور');
+        setError('بيانات الدخول غير صحيحة. تأكد من صحة اسم المستخدم وكلمة المرور');
         toast.error('فشل في تسجيل الدخول');
       } else {
         console.log('نجح تسجيل الدخول - سيتم التوجه لصفحة المشاريع');
@@ -59,16 +59,16 @@ export const Login: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-accent-dark mb-2">
-              البريد الإلكتروني
+              اسم المستخدم
             </label>
             <div className="relative">
-              <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-dark/60 h-5 w-5" />
+              <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-dark/60 h-5 w-5" />
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="input-professional pr-10 pl-4 py-3"
-                placeholder="أدخل بريدك الإلكتروني"
+                placeholder="أدخل اسم المستخدم"
                 required
               />
             </div>
@@ -105,16 +105,6 @@ export const Login: React.FC = () => {
             {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
           </button>
         </form>
-
-        <div className="mt-6 p-4 bg-accent-light/20 rounded-lg border border-accent-light/30">
-          <p className="text-xs text-accent-dark/80 mb-2">حسابات تجريبية:</p>
-          <ul className="text-xs space-y-1">
-            <li><strong>مدير:</strong> admin@demo.com / password</li>
-            <li><strong>مدير فريق:</strong> manager@demo.com / password</li>
-            <li><strong>عضو:</strong> member@demo.com / password</li>
-            <li><strong>قائد فريق:</strong> استخدم اسم المستخدم وكلمة المرور المولدة</li>
-          </ul>
-        </div>
       </div>
     </div>
   );

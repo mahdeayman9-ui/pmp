@@ -89,6 +89,12 @@ export class TasksService {
     value: number;
     workHours?: number;
     notes?: string;
+    checkInTime?: string;
+    checkInLocation?: any;
+    checkOutTime?: string;
+    checkOutLocation?: any;
+    media?: any[];
+    voiceNotes?: any[];
   }) {
     const { supabase } = await import('../lib/supabase');
     const { data: { user } } = await supabase.auth.getUser();
@@ -101,8 +107,141 @@ export class TasksService {
       date: achievement.date,
       value: achievement.value,
       work_hours: achievement.workHours || 0,
-      notes: achievement.notes
+      notes: achievement.notes,
+      check_in_time: achievement.checkInTime,
+      check_in_location: achievement.checkInLocation,
+      check_out_time: achievement.checkOutTime,
+      check_out_location: achievement.checkOutLocation,
+      media: achievement.media || [],
+      voice_notes: achievement.voiceNotes || []
     });
+  }
+
+  static async getDailyAchievements(taskId: string) {
+    const { supabase } = await import('../lib/supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('User not authenticated');
+
+    const data = await DatabaseService.findMany('daily_achievements', {
+      filters: { task_id: taskId, user_id: user.id }
+    });
+
+    return data.map(achievement => this.transformDailyAchievement(achievement));
+  }
+
+  static async updateDailyAchievement(id: string, updates: Partial<{
+    value: number;
+    workHours: number;
+    notes: string;
+    checkInTime: string;
+    checkInLocation: any;
+    checkOutTime: string;
+    checkOutLocation: any;
+    media: any[];
+    voiceNotes: any[];
+  }>) {
+    const dbUpdates: any = {};
+
+    if (updates.value !== undefined) dbUpdates.value = updates.value;
+    if (updates.workHours !== undefined) dbUpdates.work_hours = updates.workHours;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.checkInTime !== undefined) dbUpdates.check_in_time = updates.checkInTime;
+    if (updates.checkInLocation !== undefined) dbUpdates.check_in_location = updates.checkInLocation;
+    if (updates.checkOutTime !== undefined) dbUpdates.check_out_time = updates.checkOutTime;
+    if (updates.checkOutLocation !== undefined) dbUpdates.check_out_location = updates.checkOutLocation;
+    if (updates.media !== undefined) dbUpdates.media = updates.media;
+    if (updates.voiceNotes !== undefined) dbUpdates.voice_notes = updates.voiceNotes;
+
+    return await DatabaseService.update('daily_achievements', id, dbUpdates);
+  }
+
+  static async deleteDailyAchievement(id: string) {
+    return await DatabaseService.delete('daily_achievements', id);
+  }
+
+  static async uploadFile(file: File, taskId: string, date: string): Promise<string> {
+    const { supabase } = await import('../lib/supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('User not authenticated');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${taskId}/${date}/${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('task-files')
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('task-files')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  }
+
+  static async uploadMedia(file: File, taskId: string, date: string): Promise<{ url: string; type: 'image' | 'video'; name: string; size: number }> {
+    const url = await this.uploadFile(file, taskId, date);
+
+    return {
+      url,
+      type: file.type.startsWith('image/') ? 'image' : 'video',
+      name: file.name,
+      size: file.size
+    };
+  }
+
+  static async uploadAudio(audioBlob: Blob, taskId: string, date: string): Promise<{ url: string; name: string; size: number }> {
+    const { supabase } = await import('../lib/supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) throw new Error('User not authenticated');
+
+    const fileExt = 'webm'; // Default format for MediaRecorder
+    const fileName = `${user.id}/${taskId}/${date}/audio_${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('task-files')
+      .upload(fileName, audioBlob);
+
+    if (error) {
+      console.error('Error uploading audio file:', error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('task-files')
+      .getPublicUrl(fileName);
+
+    return {
+      url: publicUrl,
+      name: `تسجيل_${Date.now()}`,
+      size: audioBlob.size
+    };
+  }
+
+  private static transformDailyAchievement(achievementData: any) {
+    return {
+      id: achievementData.id,
+      taskId: achievementData.task_id,
+      userId: achievementData.user_id,
+      date: achievementData.date,
+      value: achievementData.value || 0,
+      workHours: achievementData.work_hours || 0,
+      notes: achievementData.notes,
+      checkInTime: achievementData.check_in_time,
+      checkInLocation: achievementData.check_in_location,
+      checkOutTime: achievementData.check_out_time,
+      checkOutLocation: achievementData.check_out_location,
+      media: achievementData.media || [],
+      voiceNotes: achievementData.voice_notes || [],
+      createdAt: new Date(achievementData.created_at)
+    };
   }
 
   private static transformTask(taskData: any): Task {

@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
-interface AddMemberModalProps {
+interface EditMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  teamId: string;
+  member: any;
 }
 
-export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose, teamId }) => {
+export const EditMemberModal: React.FC<EditMemberModalProps> = ({ isOpen, onClose, member }) => {
   const { teams, updateTeam } = useData();
   const [formData, setFormData] = useState({
     name: '',
@@ -24,43 +24,34 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const team = teams.find(t => t.id === teamId);
+  // تحديث البيانات عند تغيير العضو
+  useEffect(() => {
+    if (member) {
+      setFormData({
+        name: member.name || '',
+        email: member.email || '',
+        department: member.department || '',
+        jobTitle: member.jobTitle || '',
+        role: member.role === 'lead' ? 'manager' : 'member',
+        salary: member.salary ? member.salary.toString() : '',
+        idPhotoUrl: member.idPhotoUrl || '',
+        pdfFileUrl: member.pdfFileUrl || '',
+      });
+    }
+  }, [member]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!team) return;
+    if (!member) return;
 
     setIsLoading(true);
 
     try {
-      // التأكد من أن المستخدم الحالي لديه صلاحيات لإضافة الأعضاء
-      const { data: currentUser } = await supabase.auth.getUser();
-      if (currentUser.user) {
-        // تحديث ملف المستخدم الشخصي ليشمل team_id إذا لم يكن موجوداً
-        const { error: profileUpdateError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: currentUser.user.id,
-            team_id: teamId, // ربط المستخدم بالفريق الحالي
-            role: 'admin' // التأكد من أن المستخدم admin
-          }, {
-            onConflict: 'id'
-          });
-
-        if (profileUpdateError) {
-          console.error('Error updating user profile:', profileUpdateError);
-        }
-      }
-
-      // إنشاء معرف فريد للعضو
-      const userId = Math.random().toString(36).substr(2, 9);
-
-      // إنشاء العضو في جدول simple_team_members
-      const { error: memberError } = await supabase
+      // تحديث بيانات العضو في قاعدة البيانات
+      const { error } = await supabase
         .from('simple_team_members')
-        .insert({
-          team_id: teamId,
+        .update({
           name: formData.name,
           email: formData.email || null,
           role: formData.role,
@@ -69,64 +60,55 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
           salary: formData.salary ? parseFloat(formData.salary) : null,
           id_photo_url: formData.idPhotoUrl || null,
           pdf_file_url: formData.pdfFileUrl || null,
-        });
+        })
+        .eq('id', member.id);
 
-      if (memberError) {
-        toast.error(handleSupabaseError(memberError));
+      if (error) {
+        toast.error(handleSupabaseError(error));
         return;
       }
 
       // تحديث الحالة المحلية
-       const newMember = {
-         id: userId,
-         userId: userId,
-         name: formData.name,
-         email: formData.email || undefined,
-         role: (formData.role === 'manager' ? 'lead' : formData.role) as 'lead' | 'member',
-         department: formData.department || undefined,
-         jobTitle: formData.jobTitle || undefined,
-         salary: formData.salary ? parseFloat(formData.salary) : undefined,
-         idPhotoUrl: formData.idPhotoUrl || undefined,
-         pdfFileUrl: formData.pdfFileUrl || undefined,
-         joinedAt: new Date(),
-       } as any;
-
-      const updatedTeam = {
-        ...team,
-        members: [...team.members, newMember],
+      const updatedMember = {
+        ...member,
+        name: formData.name,
+        email: formData.email || undefined,
+        role: (formData.role === 'manager' ? 'lead' : formData.role) as 'lead' | 'member',
+        department: formData.department || undefined,
+        jobTitle: formData.jobTitle || undefined,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        idPhotoUrl: formData.idPhotoUrl || undefined,
+        pdfFileUrl: formData.pdfFileUrl || undefined,
       };
 
-      updateTeam(teamId, updatedTeam);
+      // تحديث الفريق المحلي
+      const team = teams.find(t => t.id === member.teamId);
+      if (team) {
+        const updatedMembers = team.members.map(m =>
+          m.id === member.id ? updatedMember : m
+        );
+        const updatedTeam = { ...team, members: updatedMembers };
+        updateTeam(team.id, updatedTeam);
+      }
 
-      toast.success('تم إضافة العضو بنجاح');
-
-      setFormData({
-         name: '',
-         email: '',
-         department: '',
-         jobTitle: '',
-         role: 'member',
-         salary: '',
-         idPhotoUrl: '',
-         pdfFileUrl: '',
-       });
+      toast.success('تم تحديث بيانات العضو بنجاح');
       onClose();
     } catch (error) {
-      console.error('Error adding member:', error);
-      toast.error('حدث خطأ أثناء إضافة العضو');
+      console.error('Error updating member:', error);
+      toast.error('حدث خطأ أثناء تحديث بيانات العضو');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isOpen || !team) return null;
+  if (!isOpen || !member) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            إضافة عضو إلى {team.name}
+            تعديل بيانات العضو
           </h2>
           <button
             onClick={onClose}
@@ -192,6 +174,21 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              الدور
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'manager' | 'member' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="member">عضو</option>
+              <option value="manager">قائد الفريق</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               الراتب
             </label>
             <input
@@ -231,27 +228,9 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              الدور
-            </label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'manager' | 'member' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            >
-              <option value="member">عضو</option>
-              <option value="manager">قائد الفريق</option>
-            </select>
-          </div>
-
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              <strong>الفريق:</strong> {team.name}
-            </p>
-            <p className="text-sm text-blue-600 mt-1">
-              {team.description}
+              <strong>الفريق:</strong> {member.teamName}
             </p>
           </div>
 
@@ -268,7 +247,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({ isOpen, onClose,
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'جاري الإضافة...' : 'إضافة العضو'}
+              {isLoading ? 'جاري التحديث...' : 'تحديث البيانات'}
             </button>
           </div>
         </form>

@@ -12,18 +12,18 @@ interface DataContextType {
   tasks: Task[];
   phases: Phase[];
   activities: Activity[];
-  
+
   // CRUD operations
-  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
-  addTeam: (team: Omit<Team, 'id' | 'createdAt'>) => void;
+  addTeam: (team: Omit<Team, 'id' | 'createdAt'>) => Promise<any | null>;
   updateTeam: (id: string, updates: Partial<Team>) => void;
   deleteTeam: (id: string) => void;
-  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
+  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => void;
-  addPhase: (phase: Omit<Phase, 'id' | 'createdAt'>) => void;
+  addPhase: (phase: Omit<Phase, 'id' | 'createdAt'>) => Promise<void>;
   updatePhase: (id: string, updates: Partial<Phase>) => void;
   deletePhase: (id: string) => void;
   
@@ -38,15 +38,21 @@ interface DataContextType {
   getPhasesByProject: (projectId: string) => Phase[];
   
   // Helper function to get all members from all teams
-  getAllMembers: () => Array<{ id: string; name: string; email: string; teamName: string; teamId: string }>;
+  getAllMembers: () => Array<{ id: string; name: string; email?: string; teamName: string; teamId: string; department?: string; jobTitle?: string; salary?: number; idPhotoUrl?: string; pdfFileUrl?: string }>;
+
+  // Update member function
+  updateMember: (memberId: string, updates: Partial<any>) => void;
   
   // متتبع المهام المحسن
-  logDailyAchievement: (taskId: string, achievement: any) => void;
+  logDailyAchievement: (taskId: string, achievement: any) => Promise<void>;
   startTask: (taskId: string) => void;
   completeTask: (taskId: string) => void;
   calculateTaskProgress: (task: Task) => number;
   getTaskRiskLevel: (task: Task) => 'low' | 'medium' | 'high' | 'critical';
   updatePhaseProgress: (phaseId: string) => void;
+  saveAllPendingChanges: () => Promise<void>;
+  loadDailyAchievementsForTask: (taskId: string) => Promise<void>;
+  getPendingChangesCount: () => number;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -66,6 +72,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [phases, setPhases] = useState<Phase[]>(emptyPhases);
   const [activities, setActivities] = useState<Activity[]>(emptyActivities);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [autoSaveEnabled] = useState(true);
+  const [pendingChanges, setPendingChanges] = useState<Map<string, any>>(new Map());
 
   // تحميل البيانات من Supabase
   useEffect(() => {
@@ -74,46 +82,179 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user, isDataLoaded]);
 
+  // Auto-save functionality
+  useEffect(() => {
+    if (!autoSaveEnabled || pendingChanges.size === 0) return;
+
+    const autoSaveTimer = setTimeout(async () => {
+      await savePendingChanges();
+    }, 2000); // Auto-save after 2 seconds of inactivity
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [pendingChanges, autoSaveEnabled]);
+
+  // Save pending changes to database
+  const savePendingChanges = async () => {
+    if (pendingChanges.size === 0) return;
+
+    try {
+      for (const [taskId, changes] of pendingChanges) {
+        if (changes.dailyAchievements) {
+          for (const achievement of changes.dailyAchievements) {
+            try {
+              // First, try to find if the record already exists
+              const { data: existingRecord, error: fetchError } = await supabase
+                .from('daily_achievements')
+                .select('id')
+                .eq('task_id', taskId)
+                .eq('date', achievement.date)
+                .eq('user_id', user?.id)
+                .single();
+
+              let result;
+              if (existingRecord && !fetchError) {
+                // Update existing record
+                result = await supabase
+                  .from('daily_achievements')
+                  .update({
+                    value: achievement.value || 0,
+                    check_in_time: achievement.checkIn?.timestamp || null,
+                    check_in_location: achievement.checkIn?.location || null,
+                    check_out_time: achievement.checkOut?.timestamp || null,
+                    check_out_location: achievement.checkOut?.location || null,
+                    work_hours: achievement.workHours || 0,
+                    notes: achievement.notes || null,
+                    media: achievement.media || [],
+                    voice_notes: achievement.voiceNotes || []
+                  })
+                  .eq('id', existingRecord.id);
+              } else {
+                // Insert new record
+                result = await supabase
+                  .from('daily_achievements')
+                  .insert({
+                    task_id: taskId,
+                    user_id: user?.id,
+                    date: achievement.date,
+                    value: achievement.value || 0,
+                    check_in_time: achievement.checkIn?.timestamp || null,
+                    check_in_location: achievement.checkIn?.location || null,
+                    check_out_time: achievement.checkOut?.timestamp || null,
+                    check_out_location: achievement.checkOut?.location || null,
+                    work_hours: achievement.workHours || 0,
+                    notes: achievement.notes || null,
+                    media: achievement.media || [],
+                    voice_notes: achievement.voiceNotes || []
+                  });
+              }
+
+              if (result.error) {
+                console.error('Auto-save error for task', taskId, 'achievement', achievement.date, ':', result.error);
+
+                // If it's still a duplicate key error, try to update instead
+                if (result.error.code === '23505' && result.error.message?.includes('duplicate key')) {
+                  console.log('Attempting to resolve duplicate key error by updating existing record...');
+
+                  // Try to find and update the existing record
+                  const { data: conflictRecord } = await supabase
+                    .from('daily_achievements')
+                    .select('id')
+                    .eq('task_id', taskId)
+                    .eq('date', achievement.date)
+                    .eq('user_id', user?.id)
+                    .single();
+
+                  if (conflictRecord) {
+                    const updateResult = await supabase
+                      .from('daily_achievements')
+                      .update({
+                        value: achievement.value || 0,
+                        check_in_time: achievement.checkIn?.timestamp || null,
+                        check_in_location: achievement.checkIn?.location || null,
+                        check_out_time: achievement.checkOut?.timestamp || null,
+                        check_out_location: achievement.checkOut?.location || null,
+                        work_hours: achievement.workHours || 0,
+                        notes: achievement.notes || null,
+                        media: achievement.media || [],
+                        voice_notes: achievement.voiceNotes || []
+                      })
+                      .eq('id', conflictRecord.id);
+
+                    if (updateResult.error) {
+                      console.error('Failed to resolve duplicate key error:', updateResult.error);
+                    } else {
+                      console.log('Successfully resolved duplicate key error');
+                    }
+                  }
+                }
+              } else {
+                console.log('Successfully saved achievement for task', taskId, 'date', achievement.date);
+              }
+            } catch (achievementError) {
+              console.error('Error processing achievement for task', taskId, 'date', achievement.date, ':', achievementError);
+            }
+          }
+        }
+      }
+
+      setPendingChanges(new Map());
+      console.log('Auto-saved pending changes');
+    } catch (error) {
+      console.error('Error during auto-save:', error);
+    }
+  };
+
   // تحميل جميع البيانات من قاعدة البيانات
   const loadAllData = async () => {
     try {
       setIsDataLoaded(false);
       
-      // تحميل الفرق
-      const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select(`
-          *,
-          team_members (
-            id,
-            role,
-            joined_at,
-            profiles (
-              id,
-              name,
-              email
-            )
-          )
-        `);
+      // تحميل الفرق مع الأعضاء من جدول simple_team_members (LEFT JOIN لإظهار الفرق بدون أعضاء)
+       const { data: teamsData, error: teamsError } = await supabase
+         .from('teams')
+         .select(`
+           *,
+           simple_team_members (
+             id,
+             name,
+             email,
+             role,
+             department,
+             job_title,
+             salary,
+             id_photo_url,
+             pdf_file_url,
+             created_at
+           )
+         `);
 
+      let formattedTeams: Team[] = [];
       if (teamsError) {
         console.error('Error loading teams:', teamsError);
         console.log('No teams found, starting with empty data');
+        formattedTeams = emptyTeams;
         setTeams(emptyTeams);
       } else if (teamsData) {
-        const formattedTeams: Team[] = teamsData!.map(team => ({
+        formattedTeams = teamsData!.map(team => ({
           id: team.id,
           name: team.name,
           description: team.description || '',
-          members: team.team_members?.map((member: any) => ({
+          members: team.simple_team_members?.map((member: any) => ({
             id: member.id,
-            userId: member.profiles?.id || '',
-            name: member.profiles?.name || '',
-            email: member.profiles?.email || '',
+            userId: member.id,
+            name: member.name,
+            email: member.email,
             role: member.role === 'lead' ? 'lead' : 'member',
-            joinedAt: new Date(member.joined_at)
+            department: member.department,
+            jobTitle: member.job_title,
+            salary: member.salary,
+            idPhotoUrl: member.id_photo_url,
+            pdfFileUrl: member.pdf_file_url,
+            joinedAt: new Date(member.created_at)
           })) || [],
-          createdAt: new Date(team.created_at)
+          createdAt: new Date(team.created_at),
+          loginEmail: team.login_email,
+          loginPassword: team.login_password
         }));
         setTeams(formattedTeams);
       }
@@ -169,41 +310,85 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // تحميل المهام
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*');
+      let tasksData: any[] = [];
+      let tasksError = null;
+
+      try {
+        // محاولة تحميل المهام بالطريقة العادية أولاً
+        const { data: regularData } = await supabase
+          .from('tasks')
+          .select(`
+            *,
+            profiles!assigned_to_user_id (
+              name
+            )
+          `);
+
+        if (regularData && regularData.length > 0) {
+          tasksData = regularData;
+          console.log('Tasks loaded successfully:', tasksData.length);
+        } else {
+          console.log('No tasks loaded with regular query, trying alternative approach...');
+
+          // محاولة تحميل المهام بدون RLS restrictions للمستخدمين الذين يواجهون مشاكل
+          const { data: altData, error: altError } = await supabase
+            .from('tasks')
+            .select('*')
+            .limit(1000); // تحميل حد أقصى للمهام
+
+          if (altData && altData.length > 0) {
+            tasksData = altData.map(task => ({
+              ...task,
+              profiles: null // لا نستطيع تحميل بيانات الملف الشخصي بدون RLS
+            }));
+            console.log('Tasks loaded with alternative query:', tasksData.length);
+          } else {
+            console.error('Alternative query also failed:', altError);
+            tasksError = altError;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+        tasksError = error;
+      }
 
       if (tasksError) {
         console.error('Error loading tasks:', tasksError);
         console.log('No tasks found, starting with empty data');
         setTasks(emptyTasks);
       } else if (tasksData) {
-        const formattedTasks: Task[] = tasksData!.map(task => ({
-          id: task.id,
-          title: task.title,
-          description: task.description || '',
-          status: task.status as any,
-          priority: task.priority as any,
-          assignedToTeamId: task.assigned_to_team_id,
-          assignedToTeamName: 'فريق التطوير', // سيتم تحديثه لاحقاً
-          startDate: new Date(task.start_date),
-          endDate: new Date(task.end_date),
-          progress: task.progress || 0,
-          phaseId: task.phase_id,
-          projectId: task.project_id,
-          createdAt: new Date(task.created_at),
-          dailyAchievements: [], // سيتم تحميلها لاحقاً
-          totalTarget: task.total_target || 100,
-          actualStartDate: task.actual_start_date ? new Date(task.actual_start_date) : undefined,
-          actualEndDate: task.actual_end_date ? new Date(task.actual_end_date) : undefined,
-          plannedEffortHours: task.planned_effort_hours || 40,
-          actualEffortHours: task.actual_effort_hours || 0,
-          riskLevel: task.risk_level as any || 'low',
-          completionRate: task.completion_rate || 0,
-          timeSpent: task.time_spent || 0,
-          isOverdue: task.is_overdue || false,
-          lastActivity: task.last_activity ? new Date(task.last_activity) : new Date()
-        }));
+        const formattedTasks: Task[] = tasksData!.map(task => {
+          // البحث عن اسم الفريق المُكلف باستخدام البيانات المحملة حديثاً
+          const assignedTeam = formattedTeams.find(t => t.id === task.assigned_to_team_id);
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description || '',
+            status: task.status as any,
+            priority: task.priority as any,
+            assignedToTeamId: task.assigned_to_team_id,
+            assignedToTeamName: assignedTeam?.name || 'غير محدد',
+            startDate: new Date(task.start_date),
+            endDate: new Date(task.end_date),
+            progress: task.progress || 0,
+            phaseId: task.phase_id,
+            projectId: task.project_id,
+            createdAt: new Date(task.created_at),
+            dailyAchievements: [], // سيتم تحميلها لاحقاً
+            totalTarget: task.total_target || 100,
+            actualStartDate: task.actual_start_date ? new Date(task.actual_start_date) : undefined,
+            actualEndDate: task.actual_end_date ? new Date(task.actual_end_date) : undefined,
+            plannedEffortHours: task.planned_effort_hours || 40,
+            actualEffortHours: task.actual_effort_hours || 0,
+            riskLevel: task.risk_level as any || 'low',
+            completionRate: task.completion_rate || 0,
+            timeSpent: task.time_spent || 0,
+            isOverdue: task.is_overdue || false,
+            lastActivity: task.last_activity ? new Date(task.last_activity) : new Date(),
+            assignedToUserId: task.assigned_to_user_id || undefined,
+            assignedToName: task.profiles?.name || '',
+          };
+        });
         setTasks(formattedTasks);
       }
 
@@ -355,8 +540,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const getAllMembers = () => {
-    const allMembers: Array<{ id: string; name: string; email: string; teamName: string; teamId: string }> = [];
-    
+    const allMembers: Array<{ id: string; name: string; email?: string; teamName: string; teamId: string; department?: string; jobTitle?: string; salary?: number; idPhotoUrl?: string; pdfFileUrl?: string }> = [];
+
     teams.forEach(team => {
       team.members.forEach(member => {
         allMembers.push({
@@ -364,42 +549,126 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: member.name,
           email: member.email,
           teamName: team.name,
-          teamId: team.id
+          teamId: team.id,
+          department: (member as any).department,
+          jobTitle: (member as any).jobTitle,
+          salary: (member as any).salary,
+          idPhotoUrl: (member as any).idPhotoUrl,
+          pdfFileUrl: (member as any).pdfFileUrl,
         });
       });
     });
-    
+
     return allMembers;
   };
-  
+
+  // Update member function
+  const updateMember = (memberId: string, updates: Partial<any>) => {
+    setTeams(prev => prev.map(team => ({
+      ...team,
+      members: team.members.map(member =>
+        member.id === memberId ? { ...member, ...updates } : member
+      )
+    })));
+  };
+
   // متتبع المهام المحسن
   const logDailyAchievement = async (taskId: string, achievement: any) => {
     try {
-      // حفظ الإنجاز في قاعدة البيانات
-      const { error } = await supabase
+      // First, check if the record already exists
+      const { data: existingRecord, error: fetchError } = await supabase
         .from('daily_achievements')
-        .upsert({
-          task_id: taskId,
-          user_id: user?.id,
-          date: achievement.date,
-          value: achievement.value || 0,
-          check_in_time: achievement.checkIn?.timestamp || null,
-          check_in_location: achievement.checkIn?.location || null,
-          check_out_time: achievement.checkOut?.timestamp || null,
-          check_out_location: achievement.checkOut?.location || null,
-          work_hours: achievement.workHours || 0,
-          notes: achievement.notes || null
-        });
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('date', achievement.date)
+        .eq('user_id', user?.id)
+        .single();
 
-      if (error) {
-        toast.error(handleSupabaseError(error));
-        return;
+      let result;
+      if (existingRecord && !fetchError) {
+        // Update existing record
+        result = await supabase
+          .from('daily_achievements')
+          .update({
+            value: achievement.value || 0,
+            check_in_time: achievement.checkIn?.timestamp || null,
+            check_in_location: achievement.checkIn?.location || null,
+            check_out_time: achievement.checkOut?.timestamp || null,
+            check_out_location: achievement.checkOut?.location || null,
+            work_hours: achievement.workHours || 0,
+            notes: achievement.notes || null,
+            media: achievement.media || [],
+            voice_notes: achievement.voiceNotes || [],
+            assigned_members: achievement.assignedMembers || []
+          })
+          .eq('id', existingRecord.id);
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('daily_achievements')
+          .insert({
+            task_id: taskId,
+            user_id: user?.id,
+            date: achievement.date,
+            value: achievement.value || 0,
+            check_in_time: achievement.checkIn?.timestamp || null,
+            check_in_location: achievement.checkIn?.location || null,
+            check_out_time: achievement.checkOut?.timestamp || null,
+            check_out_location: achievement.checkOut?.location || null,
+            work_hours: achievement.workHours || 0,
+            notes: achievement.notes || null,
+            media: achievement.media || [],
+            voice_notes: achievement.voiceNotes || [],
+            assigned_members: achievement.assignedMembers || []
+          });
+      }
+
+      if (result.error) {
+        // Handle duplicate key error specifically
+        if (result.error.code === '23505' && result.error.message?.includes('duplicate key')) {
+          console.log('Attempting to resolve duplicate key error...');
+
+          // Try to find and update the existing record
+          const { data: conflictRecord } = await supabase
+            .from('daily_achievements')
+            .select('id')
+            .eq('task_id', taskId)
+            .eq('date', achievement.date)
+            .eq('user_id', user?.id)
+            .single();
+
+          if (conflictRecord) {
+            const updateResult = await supabase
+              .from('daily_achievements')
+              .update({
+                value: achievement.value || 0,
+                check_in_time: achievement.checkIn?.timestamp || null,
+                check_in_location: achievement.checkIn?.location || null,
+                check_out_time: achievement.checkOut?.timestamp || null,
+                check_out_location: achievement.checkOut?.location || null,
+                work_hours: achievement.workHours || 0,
+                notes: achievement.notes || null,
+                media: achievement.media || [],
+                voice_notes: achievement.voiceNotes || [],
+                assigned_members: achievement.assignedMembers || []
+              })
+              .eq('id', conflictRecord.id);
+
+            if (updateResult.error) {
+              toast.error('فشل في حل تعارض البيانات');
+              return;
+            }
+          }
+        } else {
+          toast.error(handleSupabaseError(result.error));
+          return;
+        }
       }
 
       // إعادة تحميل البيانات
       await loadAllData();
       toast.success('تم حفظ الإنجاز اليومي');
-      
+
     } catch (error) {
       console.error('Error logging achievement:', error);
       toast.error('فشل في حفظ الإنجاز');
@@ -541,33 +810,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (teamError) {
         toast.error(handleSupabaseError(teamError));
-        return;
+        return null;
       }
 
-      if (teamData && team.members.length > 0) {
-        // إضافة أعضاء الفريق
-        const teamMembersData = team.members.map(member => ({
-          team_id: teamData.id,
-          user_id: member.userId,
-          role: member.role
-        }));
-
-        const { error: membersError } = await supabase
-          .from('team_members')
-          .insert(teamMembersData);
-
-        if (membersError) {
-          console.error('Error adding team members:', membersError);
-        }
-      }
-
-      // إعادة تحميل البيانات
+      // إعادة تحميل البيانات لتحديث القائمة
       await loadAllData();
       toast.success('تم إنشاء الفريق بنجاح');
-      
+
+      // إرجاع بيانات الفريق الجديد
+      return teamData;
+
     } catch (error) {
       console.error('Error adding team:', error);
       toast.error('فشل في إنشاء الفريق');
+      return null;
     }
   };
 
@@ -623,30 +879,77 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === id) {
-        const updatedTask = { 
-          ...t, 
-          ...updates, 
-          lastActivity: new Date(),
-          // تحديث التقدم إذا تم تحديث الإنجازات اليومية
-          progress: updates.dailyAchievements ? 
-            calculateTaskProgress({ ...t, ...updates }) : 
-            (updates.progress !== undefined ? updates.progress : t.progress)
-        };
-        
-        // إعادة حساب مستوى المخاطر
-        updatedTask.riskLevel = getTaskRiskLevel(updatedTask);
-        updatedTask.isOverdue = isAfter(new Date(), new Date(updatedTask.endDate)) && updatedTask.status !== 'completed';
-        
-        // تحديث تقدم المرحلة المرتبطة
-        updatePhaseProgress(updatedTask.phaseId);
-        
-        return updatedTask;
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    try {
+      // تحديث البيانات في قاعدة البيانات للحقول غير الإنجازات اليومية
+      const updateData: any = {};
+
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.priority !== undefined) updateData.priority = updates.priority;
+      if (updates.progress !== undefined) updateData.progress = updates.progress;
+      if (updates.actualStartDate !== undefined) updateData.actual_start_date = updates.actualStartDate?.toISOString();
+      if (updates.actualEndDate !== undefined) updateData.actual_end_date = updates.actualEndDate?.toISOString();
+      if (updates.totalTarget !== undefined) updateData.total_target = updates.totalTarget;
+      if (updates.plannedEffortHours !== undefined) updateData.planned_effort_hours = updates.plannedEffortHours;
+      if (updates.actualEffortHours !== undefined) updateData.actual_effort_hours = updates.actualEffortHours;
+      if (updates.riskLevel !== undefined) updateData.risk_level = updates.riskLevel;
+      if (updates.completionRate !== undefined) updateData.completion_rate = updates.completionRate;
+      if (updates.timeSpent !== undefined) updateData.time_spent = updates.timeSpent;
+      if (updates.isOverdue !== undefined) updateData.is_overdue = updates.isOverdue;
+      updateData.last_activity = new Date().toISOString();
+
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from('tasks')
+          .update(updateData)
+          .eq('id', id);
+
+        if (error) {
+          toast.error(handleSupabaseError(error));
+          return;
+        }
       }
-      return t;
-    }));
+
+      // تحديث الحالة المحلية
+      setTasks(prev => prev.map(t => {
+        if (t.id === id) {
+          const updatedTask = {
+            ...t,
+            ...updates,
+            lastActivity: new Date(),
+            // تحديث التقدم إذا تم تحديث الإنجازات اليومية
+            progress: updates.dailyAchievements ?
+              calculateTaskProgress({ ...t, ...updates }) :
+              (updates.progress !== undefined ? updates.progress : t.progress)
+          };
+
+          // إعادة حساب مستوى المخاطر
+          updatedTask.riskLevel = getTaskRiskLevel(updatedTask);
+          updatedTask.isOverdue = isAfter(new Date(), new Date(updatedTask.endDate)) && updatedTask.status !== 'completed';
+
+          // تحديث تقدم المرحلة المرتبطة
+          updatePhaseProgress(updatedTask.phaseId);
+
+          return updatedTask;
+        }
+        return t;
+      }));
+
+      // إذا تم تحديث الإنجازات اليومية، أضفها إلى التغييرات المعلقة للحفظ التلقائي
+      if (updates.dailyAchievements) {
+        setPendingChanges(prev => {
+          const newMap = new Map(prev);
+          newMap.set(id, { ...updates, timestamp: Date.now() });
+          return newMap;
+        });
+      }
+
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('فشل في تحديث المهمة');
+    }
   };
 
   const deleteTask = (id: string) => {
@@ -698,22 +1001,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updatePhaseProgress = (phaseId: string) => {
     const phaseTasks = tasks.filter(t => t.phaseId === phaseId);
     if (phaseTasks.length === 0) return;
-    
+
     const totalProgress = phaseTasks.reduce((sum, task) => sum + calculateTaskProgress(task), 0);
     const averageProgress = Math.round(totalProgress / phaseTasks.length);
-    
+
     // تحديد حالة المرحلة بناءً على حالة المهام
     const completedTasks = phaseTasks.filter(t => t.status === 'completed').length;
     const inProgressTasks = phaseTasks.filter(t => t.status === 'in-progress').length;
-    
+
     let phaseStatus: 'not-started' | 'in-progress' | 'completed' = 'not-started';
-    
+
     if (completedTasks === phaseTasks.length) {
       phaseStatus = 'completed';
     } else if (inProgressTasks > 0 || completedTasks > 0) {
       phaseStatus = 'in-progress';
     }
-    
+
     setPhases(prev => prev.map(phase => {
       if (phase.id === phaseId) {
         return {
@@ -724,6 +1027,72 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       return phase;
     }));
+  };
+
+  // Manually save all pending changes
+  const saveAllPendingChanges = async () => {
+    if (pendingChanges.size === 0) {
+      toast.success('No pending changes to save');
+      return;
+    }
+
+    try {
+      await savePendingChanges();
+      toast.success('All changes saved successfully');
+    } catch (error) {
+      console.error('Error saving pending changes:', error);
+      toast.error('Failed to save some changes');
+    }
+  };
+
+  // Load daily achievements for a specific task
+  const loadDailyAchievementsForTask = async (taskId: string) => {
+    try {
+      const { data: achievements, error } = await supabase
+        .from('daily_achievements')
+        .select('*')
+        .eq('task_id', taskId)
+        .eq('user_id', user?.id);
+
+      if (error) {
+        console.error('Error loading daily achievements:', error);
+        return;
+      }
+
+      if (achievements) {
+        const transformedAchievements = achievements.map(ach => ({
+          id: ach.id,
+          date: ach.date,
+          value: ach.value || 0,
+          workHours: ach.work_hours || 0,
+          notes: ach.notes,
+          assignedMembers: ach.assigned_members || [],
+          checkIn: ach.check_in_time ? {
+            timestamp: ach.check_in_time,
+            location: ach.check_in_location
+          } : undefined,
+          checkOut: ach.check_out_time ? {
+            timestamp: ach.check_out_time,
+            location: ach.check_out_location
+          } : undefined,
+          media: [], // Media will be handled separately if needed
+          voiceNotes: [] // Voice notes will be handled separately if needed
+        }));
+
+        setTasks(prev => prev.map(task =>
+          task.id === taskId
+            ? { ...task, dailyAchievements: transformedAchievements }
+            : task
+        ));
+      }
+    } catch (error) {
+      console.error('Error loading daily achievements for task:', error);
+    }
+  };
+
+  // Get count of pending changes
+  const getPendingChangesCount = () => {
+    return pendingChanges.size;
   };
 
   // حساب الإحصائيات المحسنة
@@ -788,12 +1157,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       getRecentActivities,
       getPhasesByProject,
       getAllMembers,
+      updateMember,
       logDailyAchievement,
       startTask,
       completeTask,
       calculateTaskProgress,
       getTaskRiskLevel,
-      updatePhaseProgress
+      updatePhaseProgress,
+      saveAllPendingChanges,
+      loadDailyAchievementsForTask,
+      getPendingChangesCount
     }}>
       {children}
     </DataContext.Provider>

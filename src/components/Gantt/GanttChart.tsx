@@ -9,9 +9,10 @@ export const GanttChart: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
   // Filter phases based on selected project
-  const filteredPhases = selectedProjectId === 'all' 
-    ? phases 
-    : phases.filter(phase => phase.projectId === selectedProjectId);
+  const filteredPhases = (selectedProjectId === 'all'
+    ? phases
+    : phases.filter(phase => phase.projectId === selectedProjectId))
+    .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
   // Calculate the overall timeline from phases
   const allDates = filteredPhases.flatMap(p => [p.startDate, p.endDate]);

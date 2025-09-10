@@ -1,11 +1,15 @@
 // Core database entity types
 export interface User {
   id: string;
-  email: string;
   name: string;
   role: 'admin' | 'manager' | 'member';
   teamId?: string;
   username?: string;
+  department?: string;
+  jobTitle?: string;
+  salary?: number;
+  idPhotoUrl?: string;
+  pdfFileUrl?: string;
   createdAt: Date;
 }
 
@@ -21,8 +25,13 @@ export interface TeamMember {
   id: string;
   userId: string;
   name: string;
-  email: string;
+  email?: string;
   role: 'lead' | 'member';
+  department?: string;
+  jobTitle?: string;
+  salary?: number;
+  idPhotoUrl?: string;
+  pdfFileUrl?: string;
   joinedAt: Date;
 }
 

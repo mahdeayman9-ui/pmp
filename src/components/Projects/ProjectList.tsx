@@ -65,10 +65,12 @@ export const ProjectList: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map((project) => (
-          <div
-            key={project.id}
-            className="card-professional p-6"
-          >
+           <Link
+             key={project.id}
+             to={`/phases?projectId=${project.id}`}
+             className="block"
+           >
+             <div className="card-professional p-6 cursor-pointer hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-semibold gradient-text">{project.name}</h3>
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
@@ -109,6 +111,7 @@ export const ProjectList: React.FC = () => {
               </div>
             </div>
           </div>
+        </Link>
         ))}
       </div>
 

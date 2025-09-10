@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
-import { Plus, Calendar, BarChart, Users, Clock, Target, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, Target, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
 import { PhaseModal } from './PhaseModal';
 import { PhaseCard } from './PhaseCard';
 
 export const PhaseList: React.FC = () => {
   const { projects, phases, tasks, teams } = useData();
+  const [searchParams] = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedPhase, setSelectedPhase] = useState(null);
+
+  useEffect(() => {
+    const projectId = searchParams.get('projectId');
+    if (projectId) {
+      setSelectedProjectId(projectId);
+    }
+  }, [searchParams]);
 
   // فلترة المراحل حسب المشروع المحدد
   const filteredPhases = selectedProjectId 

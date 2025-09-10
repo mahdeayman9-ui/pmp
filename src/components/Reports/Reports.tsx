@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { exportToPDF, exportToExcel, prepareReportData } from '../../utils/exportUtils';
+import { exportToExcel, prepareReportData, printReport } from '../../utils/exportUtils';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area,
@@ -41,6 +41,7 @@ export const Reports: React.FC = () => {
     return filtered;
   }, [tasks, selectedTeam, selectedProject, projects]);
 
+  // تحسين الأداء باستخدام useMemo لجميع التقارير
   // تقرير الإنتاجية اليومية
   const dailyProductivityReport = useMemo(() => {
     const dailyData = new Map();
@@ -186,7 +187,7 @@ export const Reports: React.FC = () => {
     let totalMedia = 0;
     let totalVoiceNotes = 0;
     let mediaByType = { image: 0, video: 0 };
-    const mediaByTask = [];
+    const mediaByTask: Array<{taskTitle: string, projectName: string, mediaCount: number, voiceNotesCount: number}> = [];
 
     filteredTasks.forEach(task => {
       let taskMedia = 0;
@@ -255,11 +256,27 @@ export const Reports: React.FC = () => {
     return { achievementData, summary };
   }, [filteredTasks, projects]);
 
-  const exportReport = (reportType: string) => {
+  // دالة للحصول على خيارات التصدير للتقرير الحالي
+  const getExportOptions = () => {
     let reportData;
     let title = '';
-    
-    switch (reportType) {
+
+    switch (selectedReport) {
+      case 'overview':
+        title = 'تقرير نظرة عامة';
+        reportData = {
+          columns: [
+            { header: 'المقياس', dataKey: 'metric' },
+            { header: 'القيمة', dataKey: 'value' },
+          ],
+          data: [
+            { metric: 'إجمالي المهام', value: filteredTasks.length },
+            { metric: 'المهام المكتملة', value: filteredTasks.filter(t => t.status === 'completed').length },
+            { metric: 'المهام المتأخرة', value: filteredTasks.filter(t => t.isOverdue).length },
+            { metric: 'معدل الإنجاز', value: `${filteredTasks.length > 0 ? Math.round((filteredTasks.filter(t => t.status === 'completed').length / filteredTasks.length) * 100) : 0}%` }
+          ]
+        };
+        break;
       case 'productivity':
         reportData = prepareReportData(dailyProductivityReport, 'productivity');
         title = 'تقرير الإنتاجية اليومية';
@@ -268,16 +285,65 @@ export const Reports: React.FC = () => {
         reportData = prepareReportData(teamPerformanceReport, 'teams');
         title = 'تقرير أداء الفرق';
         break;
+      case 'risks':
+        title = 'تقرير تحليل المخاطر';
+        reportData = {
+          columns: [
+            { header: 'المهمة', dataKey: 'taskTitle' },
+            { header: 'المشروع', dataKey: 'projectName' },
+            { header: 'المُكلف', dataKey: 'assignedTo' },
+            { header: 'مستوى المخاطر', dataKey: 'riskLevel' },
+            { header: 'التقدم', dataKey: 'progress' },
+            { header: 'أيام التأخير', dataKey: 'daysOverdue' },
+          ],
+          data: riskAnalysisReport.riskTasks
+        };
+        break;
       case 'attendance':
         reportData = prepareReportData(attendanceReport, 'attendance');
         title = 'تقرير الحضور والانصراف';
+        break;
+      case 'workhours':
+        reportData = prepareReportData(workHoursReport, 'workhours');
+        title = 'تقرير ساعات العمل اليومية';
+        break;
+      case 'media':
+        title = 'تقرير الوسائط والتسجيلات';
+        reportData = {
+          columns: [
+            { header: 'المهمة', dataKey: 'taskTitle' },
+            { header: 'المشروع', dataKey: 'projectName' },
+            { header: 'الوسائط', dataKey: 'mediaCount' },
+            { header: 'التسجيلات الصوتية', dataKey: 'voiceNotesCount' },
+            { header: 'الإجمالي', dataKey: 'total' },
+          ],
+          data: mediaReport.mediaByTask.map(item => ({
+            ...item,
+            total: item.mediaCount + item.voiceNotesCount
+          }))
+        };
+        break;
+      case 'achievements':
+        title = 'تقرير الإنجازات والأهداف';
+        reportData = {
+          columns: [
+            { header: 'المهمة', dataKey: 'taskTitle' },
+            { header: 'المشروع', dataKey: 'projectName' },
+            { header: 'المُكلف', dataKey: 'assignedTo' },
+            { header: 'الهدف', dataKey: 'totalTarget' },
+            { header: 'المُنجز', dataKey: 'totalAchieved' },
+            { header: 'نسبة الإنجاز', dataKey: 'completionRate' },
+            { header: 'الحالة', dataKey: 'status' },
+          ],
+          data: achievementsReport.achievementData
+        };
         break;
       default:
         reportData = { columns: [], data: [] };
         title = 'تقرير عام';
     }
-    
-    const exportOptions = {
+
+    return {
       title,
       data: reportData.data,
       columns: reportData.columns,
@@ -285,10 +351,11 @@ export const Reports: React.FC = () => {
       companyLogo: settings.logo || undefined,
       filename: `${title}_${new Date().toISOString().split('T')[0]}`
     };
-    
-    // تصدير PDF و Excel
-    exportToPDF(exportOptions);
-    setTimeout(() => exportToExcel(exportOptions), 1000);
+  };
+
+  const exportReport = (reportType: string) => {
+    const exportOptions = getExportOptions();
+    exportToExcel(exportOptions);
   };
 
   const renderOverviewReport = () => (
@@ -454,7 +521,7 @@ export const Reports: React.FC = () => {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, value }) => `${format(new Date(name), 'dd/MM')}: ${value.toFixed(1)}س`}
+                  label={({ name, value }) => `${format(new Date(name), 'dd/MM')}: ${Number(value || 0).toFixed(1)}س`}
                 >
                   {dailyProductivityReport.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -565,7 +632,7 @@ export const Reports: React.FC = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => `${name} ${Number(percent || 0 * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -858,12 +925,194 @@ export const Reports: React.FC = () => {
     );
   };
 
+  // تقرير ساعات العمل اليومية والوقت الإضافي
+  const workHoursReport = useMemo(() => {
+    const workHoursData = new Map();
+
+    filteredTasks.forEach(task => {
+      if (task.dailyAchievements) {
+        task.dailyAchievements.forEach(achievement => {
+          if (achievement.checkIn && achievement.checkOut) {
+            const date = achievement.date;
+            const duration = new Date(achievement.checkOut.timestamp).getTime() -
+                           new Date(achievement.checkIn.timestamp).getTime();
+            const hours = duration / (1000 * 60 * 60);
+
+            if (!workHoursData.has(date)) {
+              workHoursData.set(date, {
+                date,
+                totalHours: 0,
+                regularHours: 0,
+                overtimeHours: 0,
+                tasksCount: 0,
+                teamName: task.assignedToTeamName || 'غير محدد',
+                projectName: projects.find(p => p.id === task.projectId)?.name || 'مشروع غير معروف'
+              });
+            }
+
+            const dayData = workHoursData.get(date);
+            dayData.totalHours += hours;
+            dayData.tasksCount += 1;
+
+            // افتراض 8 ساعات كساعات عمل عادية
+            const regularHours = Math.min(hours, 8);
+            const overtimeHours = Math.max(0, hours - 8);
+
+            dayData.regularHours += regularHours;
+            dayData.overtimeHours += overtimeHours;
+          }
+        });
+      }
+    });
+
+    return Array.from(workHoursData.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredTasks, projects]);
+
+  const renderWorkHoursReport = () => {
+    const totalRegularHours = workHoursReport.reduce((sum, day) => sum + day.regularHours, 0);
+    const totalOvertimeHours = workHoursReport.reduce((sum, day) => sum + day.overtimeHours, 0);
+    const totalTasks = workHoursReport.reduce((sum, day) => sum + day.tasksCount, 0);
+
+    return (
+      <div className="space-y-6">
+        {/* إحصائيات عامة */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">إجمالي ساعات العمل</p>
+                <p className="text-3xl font-bold text-blue-600">{(totalRegularHours + totalOvertimeHours).toFixed(1)}س</p>
+              </div>
+              <Clock className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">ساعات العمل العادية</p>
+                <p className="text-3xl font-bold text-green-600">{totalRegularHours.toFixed(1)}س</p>
+              </div>
+              <Clock className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">ساعات العمل الإضافية</p>
+                <p className="text-3xl font-bold text-orange-600">{totalOvertimeHours.toFixed(1)}س</p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">عدد أيام العمل</p>
+                <p className="text-3xl font-bold text-purple-600">{workHoursReport.length}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-purple-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* رسم بياني لساعات العمل */}
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <h3 className="text-lg font-semibold mb-4">ساعات العمل اليومية</h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={workHoursReport}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickFormatter={(date) => format(new Date(date), 'dd/MM')} />
+                <YAxis />
+                <Tooltip
+                  labelFormatter={(date) => format(new Date(date), 'dd MMMM yyyy', { locale: ar })}
+                  formatter={(value, name) => [
+                    `${Number(value).toFixed(1)} ساعة`,
+                    name === 'regularHours' ? 'ساعات عادية' : 'ساعات إضافية'
+                  ]}
+                />
+                <Area type="monotone" dataKey="regularHours" stackId="1" stroke="#10B981" fill="#10B981" name="ساعات عادية" />
+                <Area type="monotone" dataKey="overtimeHours" stackId="1" stroke="#F59E0B" fill="#F59E0B" name="ساعات إضافية" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* جدول تفصيلي */}
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <h3 className="text-lg font-semibold mb-4">تفاصيل ساعات العمل اليومية</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">التاريخ</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفريق</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المشروع</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">عدد المهام</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ساعات عادية</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ساعات إضافية</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي الساعات</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {workHoursReport.map((day, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {format(new Date(day.date), 'dd MMM yyyy', { locale: ar })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{day.teamName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{day.projectName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{day.tasksCount}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{day.regularHours.toFixed(1)}س</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">{day.overtimeHours.toFixed(1)}س</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{day.totalHours.toFixed(1)}س</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ملخص الوقت الإضافي */}
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <h3 className="text-lg font-semibold mb-4">ملخص الوقت الإضافي</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-sm text-green-600">متوسط الساعات العادية يومياً</p>
+              <p className="text-2xl font-bold text-green-700">
+                {workHoursReport.length > 0 ? (totalRegularHours / workHoursReport.length).toFixed(1) : 0}س
+              </p>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <p className="text-sm text-orange-600">متوسط الساعات الإضافية يومياً</p>
+              <p className="text-2xl font-bold text-orange-700">
+                {workHoursReport.length > 0 ? (totalOvertimeHours / workHoursReport.length).toFixed(1) : 0}س
+              </p>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-600">نسبة الوقت الإضافي</p>
+              <p className="text-2xl font-bold text-blue-700">
+                {totalRegularHours + totalOvertimeHours > 0
+                  ? ((totalOvertimeHours / (totalRegularHours + totalOvertimeHours)) * 100).toFixed(1)
+                  : 0}%
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const reportTypes = [
     { id: 'overview', name: 'نظرة عامة', icon: Eye },
     { id: 'productivity', name: 'الإنتاجية', icon: TrendingUp },
     { id: 'teams', name: 'أداء الفرق', icon: Users },
     { id: 'risks', name: 'تحليل المخاطر', icon: AlertTriangle },
     { id: 'attendance', name: 'الحضور والانصراف', icon: Clock },
+    { id: 'workhours', name: 'ساعات العمل اليومية', icon: Clock },
     { id: 'media', name: 'الوسائط والتسجيلات', icon: Camera },
     { id: 'achievements', name: 'الإنجازات والأهداف', icon: Target }
   ];
@@ -875,6 +1124,7 @@ export const Reports: React.FC = () => {
       case 'teams': return renderTeamReport();
       case 'risks': return renderRiskReport();
       case 'attendance': return renderAttendanceReport();
+      case 'workhours': return renderWorkHoursReport();
       case 'media': return renderMediaReport();
       case 'achievements': return renderAchievementsReport();
       default: return renderOverviewReport();
@@ -890,11 +1140,18 @@ export const Reports: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3 space-x-reverse">
           <button
-            onClick={() => exportReport(selectedReport)}
+            onClick={() => exportToExcel(getExportOptions())}
             className="btn-success px-4 py-2 flex items-center space-x-2 space-x-reverse"
           >
             <Download className="h-5 w-5" />
-            <span>تصدير PDF & Excel</span>
+            <span>تصدير Excel</span>
+          </button>
+          <button
+            onClick={() => printReport(getExportOptions())}
+            className="btn-secondary px-4 py-2 flex items-center space-x-2 space-x-reverse"
+          >
+            <Eye className="h-5 w-5" />
+            <span>طباعة</span>
           </button>
         </div>
       </div>

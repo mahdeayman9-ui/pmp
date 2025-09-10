@@ -14,6 +14,8 @@ export interface Team {
   description: string;
   members: TeamMember[];
   createdAt: Date;
+  loginEmail?: string;
+  loginPassword?: string;
 }
 
 export interface TeamMember {
@@ -90,24 +92,30 @@ export interface Task {
   attachments?: TaskAttachment[];
   comments?: TaskComment[];
 }
+export interface CheckInData {
+  timestamp: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface CheckOutData {
+  timestamp: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+}
 
 export interface DailyAchievement {
+  id?: string;
   date: string;
   value: number;
-  checkIn?: {
-    timestamp: string;
-    location: {
-      latitude: number;
-      longitude: number;
-    };
-  };
-  checkOut?: {
-    timestamp: string;
-    location: {
-      latitude: number;
-      longitude: number;
-    };
-  };
+  assignedMembers?: string[]; // Array of member IDs
+  memberCheckIns?: { [memberId: string]: { checkIn?: CheckInData, checkOut?: CheckOutData } };
+  checkIn?: CheckInData;
+  checkOut?: CheckOutData;
   media?: MediaItem[];
   voiceNotes?: VoiceNote[];
   notes?: string;
@@ -118,13 +126,15 @@ export interface MediaItem {
   url: string;
   type: 'image' | 'video';
   timestamp: string;
-  name?: string;
-  size?: number;
+  name: string;
+  size: number;
 }
 
 export interface VoiceNote {
   audioUrl: string;
   timestamp: string;
+  name?: string;
+  size?: number;
   duration?: number;
   transcription?: string;
 }
@@ -153,7 +163,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
-  addUser?: (user: User) => void;
+  addUser?: (user: Omit<User, 'id'> & { password?: string; generatedPassword?: string }) => Promise<void>;
   users?: User[];
 }
 

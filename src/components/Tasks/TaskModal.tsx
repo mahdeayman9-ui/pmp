@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { addDays } from 'date-fns';
+import { canUpdateTasks } from '../../utils/permissions';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface TaskModalProps {
 
 export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
   const { projects, phases, addTask, getAllTeams } = useData();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -82,6 +85,27 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose }) => {
   };
 
   if (!isOpen) return null;
+
+  // Check if user can update tasks
+  if (!canUpdateTasks(user?.teamId)) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🚫</div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">غير مسموح</h2>
+            <p className="text-gray-600 mb-4">ليس لديك صلاحية إنشاء أو تعديل المهام.</p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              إغلاق
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Plus, Users, UserPlus, Calendar, Key } from 'lucide-react';
+import { Plus, Users, UserPlus, Key } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { TeamModal } from './TeamModal';
@@ -21,27 +21,21 @@ export const TeamList: React.FC = () => {
   };
 
   const handleViewCredentials = (teamId: string) => {
-    // البحث عن قائد الفريق
     const team = teams.find(t => t.id === teamId);
-    if (!team) return;
-    
-    const teamLeader = team.members.find(member => member.role === 'lead');
-    if (!teamLeader) return;
-    
-    // البحث عن بيانات المستخدم
-    const user = users?.find(u => u.email === teamLeader.email);
-    if (!user || !user.username || !user.generatedPassword) {
+    if (!team || !team.loginEmail || !team.loginPassword) {
       alert('لا توجد بيانات دخول مولدة لهذا الفريق');
       return;
     }
-    
+
+    const teamLeader = team.members.find(member => member.role === 'lead');
+
     setShowCredentials({
       teamId,
       credentials: {
-        username: user.username,
-        password: user.generatedPassword,
+        email: team.loginEmail,
+        password: team.loginPassword,
         teamName: team.name,
-        leaderName: teamLeader.name
+        leaderName: teamLeader?.name || 'قائد الفريق'
       }
     });
   };
@@ -110,7 +104,9 @@ export const TeamList: React.FC = () => {
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">تاريخ الإنشاء</span>
-                  <span className="text-gray-900">{format(team.createdAt, 'dd MMM yyyy', { locale: ar })}</span>
+                  <span className="text-gray-900">
+                    {team.createdAt ? format(team.createdAt, 'dd MMM yyyy', { locale: ar }) : 'غير محدد'}
+                  </span>
                 </div>
               </div>
 
@@ -170,9 +166,9 @@ export const TeamList: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">اسم المستخدم:</label>
+                  <label className="block text-sm text-gray-600 mb-1">البريد الإلكتروني:</label>
                   <div className="font-mono bg-white px-3 py-2 rounded border text-sm font-medium">
-                    {showCredentials.credentials.username}
+                    {showCredentials.credentials.email}
                   </div>
                 </div>
                 <div>
@@ -184,7 +180,7 @@ export const TeamList: React.FC = () => {
               </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-800">
-                💡 يمكن لقائد الفريق استخدام هذه البيانات لتسجيل الدخول والوصول لمهام فريقه فقط
+                💡 يمكن لقائد الفريق استخدام هذه البيانات لتسجيل الدخول إلى النظام ومتابعة مهام فريقه
               </p>
             </div>
             </div>

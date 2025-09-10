@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Plus, Filter, Calendar, User, AlertTriangle, Clock, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { TaskModal } from './TaskModal';
+import { canUpdateTasks } from '../../utils/permissions';
 
 export const TaskList: React.FC = () => {
-  const { tasks, projects, teams, getTaskRiskLevel, calculateTaskProgress, getAllTeams } = useData();
+  const { tasks, projects, getTaskRiskLevel, calculateTaskProgress, getAllTeams } = useData();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -94,20 +97,6 @@ export const TaskList: React.FC = () => {
     }
   };
 
-  const getRiskText = (riskLevel: string) => {
-    switch (riskLevel) {
-      case 'critical':
-        return 'حرجة';
-      case 'high':
-        return 'عالية';
-      case 'medium':
-        return 'متوسطة';
-      case 'low':
-        return 'منخفضة';
-      default:
-        return riskLevel;
-    }
-  };
 
   const getProjectAndPhase = (projectId: string, phaseId: string) => {
     const project = projects.find(p => p.id === projectId);
@@ -128,7 +117,9 @@ export const TaskList: React.FC = () => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="btn-primary px-4 py-2 flex items-center space-x-2 space-x-reverse"
+          disabled={!canUpdateTasks(user?.teamId)}
+          className="btn-primary px-4 py-2 flex items-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed"
+          title={!canUpdateTasks(user?.teamId) ? 'ليس لديك صلاحية إضافة مهام' : ''}
         >
           <Plus className="h-5 w-5" />
           <span>مهمة جديدة</span>
@@ -239,87 +230,70 @@ export const TaskList: React.FC = () => {
         </div>
       </div>
 
-      {/* قائمة المهام */}
-      <div className="space-y-4">
+      {/* قائمة المهام - عرض شريطي عمودي */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredTasks.map((task) => {
           const progress = calculateTaskProgress(task);
           const riskLevel = getTaskRiskLevel(task);
-          
+
           return (
             <div
               key={task.id}
-              className={`bg-white rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-shadow ${getRiskColor(riskLevel)}`}
+              onClick={() => navigate(`/task-tracker/${task.id}`)}
+              className={`bg-white rounded-lg shadow-sm border-2 p-4 hover:shadow-md transition-all duration-200 cursor-pointer ${getRiskColor(riskLevel)}`}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 space-x-reverse mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
-                      {getStatusText(task.status)}
-                    </span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(task.priority)}`}>
-                      أولوية {getPriorityText(task.priority)}
-                    </span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getRiskColor(riskLevel)}`}>
-                      مخاطر {getRiskText(riskLevel)}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mb-3">{task.description}</p>
-                  <div className="text-sm text-gray-500">
-                    <span>{getProjectAndPhase(task.projectId, task.phaseId)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-center text-sm text-gray-500">
-                  <Calendar className="h-4 w-4 ml-2" />
-                  <span>
-                    {format(task.startDate, 'dd MMM', { locale: ar })} - {format(task.endDate, 'dd MMM yyyy', { locale: ar })}
+              {/* العنوان والحالة */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
+                    {getStatusText(task.status)}
+                  </span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(task.priority)}`}>
+                    {getPriorityText(task.priority)}
                   </span>
                 </div>
-                
-                <div className="flex items-center text-sm text-gray-500">
-                  <User className="h-4 w-4 ml-2" />
-                  <span>{task.assignedToTeamName || 'غير مُكلف لفريق'}</span>
-                </div>
+                <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+                  {task.title}
+                </h3>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">التقدم</span>
-                  <span className="text-sm font-medium text-gray-900">{progress}%</span>
+              {/* الفريق المسؤول */}
+              <div className="flex items-center text-xs text-gray-600 mb-3">
+                <User className="h-3 w-3 ml-1" />
+                <span className="truncate">{task.assignedToTeamName || 'غير مُكلف'}</span>
+              </div>
+
+              {/* التواريخ */}
+              <div className="text-xs text-gray-500 mb-3">
+                <div className="flex items-center mb-1">
+                  <Calendar className="h-3 w-3 ml-1" />
+                  <span>{format(task.startDate, 'dd/MM', { locale: ar })} - {format(task.endDate, 'dd/MM', { locale: ar })}</span>
                 </div>
               </div>
 
               {/* شريط التقدم */}
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                <div
-                  className={`h-3 rounded-full transition-all duration-300 ${
-                    progress === 100 ? 'bg-green-500' : 
-                    progress >= 75 ? 'bg-blue-500' : 
-                    progress >= 50 ? 'bg-yellow-500' : 
-                    'bg-red-500'
-                  }`}
-                  style={{ width: `${progress}%` }}
-                />
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                  <span>التقدم</span>
+                  <span className="font-medium">{progress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      progress === 100 ? 'bg-green-500' :
+                      progress >= 75 ? 'bg-blue-500' :
+                      progress >= 50 ? 'bg-yellow-500' :
+                      'bg-red-500'
+                    }`}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
               </div>
 
-              {/* معلومات إضافية */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-4 space-x-reverse">
-                  {task.totalTarget && (
-                    <span>الهدف: {task.totalTarget}</span>
-                  )}
-                  {task.dailyAchievements && task.dailyAchievements.length > 0 && (
-                    <span>الإنجازات: {task.dailyAchievements.length}</span>
-                  )}
-                  {task.actualStartDate && (
-                    <span>بدأت: {format(task.actualStartDate, 'dd MMM', { locale: ar })}</span>
-                  )}
-                </div>
-                <div>
-                  {task.lastActivity && (
-                    <span>آخر نشاط: {format(task.lastActivity, 'dd MMM، HH:mm', { locale: ar })}</span>
-                  )}
+              {/* المشروع والمرحلة */}
+              <div className="text-xs text-gray-500 border-t pt-2">
+                <div className="truncate">
+                  {getProjectAndPhase(task.projectId, task.phaseId)}
                 </div>
               </div>
             </div>

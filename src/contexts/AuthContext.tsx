@@ -123,12 +123,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.log('إنشاء ملف شخصي للمستخدم:', authUser.user.email);
 
             // محاولة إنشاء الملف الشخصي
+            const userEmail = authUser.user.email || 'user@example.com';
+            const userName = authUser.user.email?.split('@')[0] || authUser.user.email || 'مستخدم';
+
             const { data: insertData, error: insertError } = await supabase
               .from('profiles')
-              .insert({
+              .upsert({
                 id: authUser.user.id,
-                email: authUser.user.email || '',
-                name: authUser.user.email?.split('@')[0] || 'مستخدم',
+                email: userEmail,
+                name: userName,
                 role: 'admin' // أول مستخدم يكون admin
               })
               .select()
@@ -186,7 +189,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (profile) {
-        console.log('تم تحميل الملف الشخصي:', profile.name);
+        console.log('تم تحميل الملف الشخصي:', profile.name, 'الدور:', profile.role, 'الفريق:', profile.team_id);
         const userData: User = {
           id: profile.id,
           email: profile.email,
@@ -197,7 +200,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setUser(userData);
         setProfileLoaded(true);
-        console.log('تم تعيين بيانات المستخدم بنجاح');
+        console.log('تم تعيين بيانات المستخدم بنجاح - الدور:', userData.role, 'الفريق:', userData.teamId);
       }
 
     } catch (error) {
@@ -251,10 +254,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // تسجيل الدخول
-  const login = async (email: string, password: string): Promise<boolean> => {
-    console.log('بدء عملية تسجيل الدخول:', email);
-    
+  const login = async (usernameOrEmail: string, password: string): Promise<boolean> => {
+    console.log('بدء عملية تسجيل الدخول:', usernameOrEmail);
+
     try {
+      let email = usernameOrEmail;
+
+      // إذا لم يكن المدخل بريد إلكتروني، ابحث عنه كاسم مستخدم
+      if (!usernameOrEmail.includes('@')) {
+        console.log('البحث عن المستخدم باستخدام اسم المستخدم:', usernameOrEmail);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('username', usernameOrEmail)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('لم يتم العثور على المستخدم:', profileError);
+          toast.error('اسم المستخدم غير موجود');
+          return false;
+        }
+
+        email = profile.email;
+        console.log('تم العثور على البريد الإلكتروني:', email);
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -299,45 +323,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // إضافة مستخدم جديد
-  const addUser = async (newUser: Omit<User, 'id'> & { password?: string; generatedPassword?: string }) => {
+  // إضافة عضو جديد (مبسط - بدون إنشاء حساب مصادقة)
+  const addUser = async (newUser: Omit<User, 'id'>) => {
     try {
-      const password = newUser.password || newUser.generatedPassword || 'defaultPassword123';
-      // إنشاء حساب المصادقة
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: password,
-      });
+      // إنشاء معرف فريد للعضو
+      const memberId = crypto.randomUUID();
 
-      if (authError) {
-        toast.error(handleSupabaseError(authError));
+      // التحقق من صحة teamId
+      const isValidUUID = (str: string | undefined) => {
+        if (!str) return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(str);
+      };
+
+      const validTeamId = isValidUUID(newUser.teamId) ? newUser.teamId : null;
+
+      // إدراج العضو مباشرة في جدول الملفات الشخصية
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: memberId,
+          email: newUser.email,
+          name: newUser.name,
+          role: newUser.role || 'member',
+          username: newUser.username,
+          team_id: validTeamId,
+        });
+
+      if (profileError) {
+        console.error('Error adding member:', profileError);
+        toast.error(handleSupabaseError(profileError));
         return;
       }
 
-      if (authData.user) {
-        // إنشاء الملف الشخصي
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: newUser.email,
-            name: newUser.name,
-            role: newUser.role,
-            username: newUser.username,
-            team_id: newUser.teamId,
-          });
-
-        if (profileError) {
-          toast.error(handleSupabaseError(profileError));
-          return;
-        }
-
-        toast.success('تم إنشاء المستخدم بنجاح');
-        await loadUsers(); // إعادة تحميل قائمة المستخدمين
-      }
+      toast.success('تم إضافة العضو بنجاح');
+      await loadUsers(); // إعادة تحميل قائمة الأعضاء
     } catch (error) {
-      console.error('Error adding user:', error);
-      toast.error('حدث خطأ أثناء إنشاء المستخدم');
+      console.error('Error adding member:', error);
+      toast.error('حدث خطأ أثناء إضافة العضو');
     }
   };
 

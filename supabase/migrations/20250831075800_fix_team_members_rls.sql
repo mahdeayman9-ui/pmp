@@ -16,17 +16,21 @@ CREATE POLICY "Users can view team memberships in their teams" ON team_members
   FOR SELECT USING (is_user_in_team(team_id));
 
 -- Also ensure users can view their own memberships
+DROP POLICY IF EXISTS "Users can view their own team memberships" ON team_members;
 CREATE POLICY "Users can view their own team memberships" ON team_members
   FOR SELECT USING (user_id = auth.uid());
 
 -- Add policies for INSERT, UPDATE, DELETE if needed
 -- Assuming team leaders or admins can manage team members
 -- For now, keep it simple: users can manage their own memberships
+DROP POLICY IF EXISTS "Users can insert their own team memberships" ON team_members;
 CREATE POLICY "Users can insert their own team memberships" ON team_members
   FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update their own team memberships" ON team_members;
 CREATE POLICY "Users can update their own team memberships" ON team_members
   FOR UPDATE USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can delete their own team memberships" ON team_members;
 CREATE POLICY "Users can delete their own team memberships" ON team_members
   FOR DELETE USING (user_id = auth.uid());

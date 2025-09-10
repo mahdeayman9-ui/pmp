@@ -289,6 +289,8 @@ export interface Database {
           check_out_location: any;
           work_hours: number;
           notes: string | null;
+          media: any;
+          voice_notes: any;
           created_at: string;
         };
         Insert: {
@@ -303,6 +305,8 @@ export interface Database {
           check_out_location?: any;
           work_hours?: number;
           notes?: string | null;
+          media?: any;
+          voice_notes?: any;
           created_at?: string;
         };
         Update: {
@@ -317,7 +321,100 @@ export interface Database {
           check_out_location?: any;
           work_hours?: number;
           notes?: string | null;
+          media?: any;
+          voice_notes?: any;
           created_at?: string;
+        };
+      };
+      revenues: {
+        Row: {
+          id: string;
+          item: string;
+          planned_revenue: number;
+          actual_revenue: number;
+          planned_date: string | null;
+          actual_date: string | null;
+          amount_variance: number;
+          days_variance: number;
+          collection_status: boolean;
+          company_id: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          item: string;
+          planned_revenue?: number;
+          actual_revenue?: number;
+          planned_date?: string | null;
+          actual_date?: string | null;
+          amount_variance?: number;
+          days_variance?: number;
+          collection_status?: boolean;
+          company_id: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          item?: string;
+          planned_revenue?: number;
+          actual_revenue?: number;
+          planned_date?: string | null;
+          actual_date?: string | null;
+          amount_variance?: number;
+          days_variance?: number;
+          collection_status?: boolean;
+          company_id?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      costs: {
+        Row: {
+          id: string;
+          item: string;
+          planned_cost: number;
+          actual_cost: number;
+          planned_date: string | null;
+          actual_date: string | null;
+          amount_variance: number;
+          days_variance: number;
+          company_id: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          item: string;
+          planned_cost?: number;
+          actual_cost?: number;
+          planned_date?: string | null;
+          actual_date?: string | null;
+          amount_variance?: number;
+          days_variance?: number;
+          company_id: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          item?: string;
+          planned_cost?: number;
+          actual_cost?: number;
+          planned_date?: string | null;
+          actual_date?: string | null;
+          amount_variance?: number;
+          days_variance?: number;
+          company_id?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };
